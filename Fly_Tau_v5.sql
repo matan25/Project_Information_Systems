@@ -120,7 +120,6 @@ CREATE TABLE FlightAttendants (
 CREATE TABLE Flights (
     Flight_id       VARCHAR(10) PRIMARY KEY,
     Dep_DateTime    DATETIME NOT NULL,
-   # Arr_DateTime    DATETIME NOT NULL,
     Status          ENUM('Active', 'Full-Occupied','Completed','Cancelled') NOT NULL,
     Aircraft_id     VARCHAR(10) NOT NULL,
     Route_id        VARCHAR(10) NOT NULL,
@@ -206,9 +205,9 @@ INSERT INTO Flight_Routes (Route_id, Duration_Minutes, Origin_Airport_code, Dest
 ('R007', 255, 'CDG', 'TLV'),   -- 4.25 hours
 ('R008', 420, 'LHR', 'JFK'),   -- 7  hours (LONG)
 ('R009', 480, 'JFK', 'CDG'),   -- 8  hours (LONG)
-('R010', 510, 'CDG', 'JFK'),   -- 8.5 hours (LONG)
-('R011',  75, 'LHR', 'CDG'),   -- 1.25 hours
-('R012',  90, 'CDG', 'LHR');   -- 1.5  hours
+('R010', 510, 'CDG', 'JFK'),   
+('R011',  75, 'LHR', 'CDG'),   
+('R012',  90, 'CDG', 'LHR');   
 
 INSERT INTO Aircrafts (Aircraft_id, Manufacturer, Model, Size, Purchase_Date) VALUES
 ('ACB001', 'Boeing',   '787-9 Dreamliner', 'Large', '2015-01-10 00:00:00'),
@@ -225,44 +224,42 @@ INSERT INTO Aircrafts (Aircraft_id, Manufacturer, Model, Size, Purchase_Date) VA
 ('ACB010', 'Boeing',   '787-10 Dreamliner', 'Large', '2017-12-01 00:00:00');
 
 INSERT INTO Seats (Seat_id, Aircraft_id, Row_Num, Col_Num, Seat_Class) VALUES
--- AC001
 ('S001', 'ACB001', 1, 1, 'Business'),
 ('S002', 'ACB001', 1, 2, 'Business'),
 ('S003', 'ACB001', 2, 1, 'Economy'),
 ('S004', 'ACB001', 2, 2, 'Economy'),
 ('S005', 'ACB001', 3, 1, 'Economy'),
 ('S006', 'ACB001', 3, 2, 'Economy'),
--- AC002
+	
 ('S007', 'ACA002', 1, 1, 'Economy'),
 ('S008', 'ACA002', 1, 2, 'Economy'),
 ('S009', 'ACA002', 2, 1, 'Economy'),
 ('S010', 'ACA002', 2, 2, 'Economy'),
--- AC003
 ('S011', 'ACD003', 1, 1, 'Business'),
+	
 ('S012', 'ACD003', 1, 2, 'Business'),
 ('S013', 'ACD003', 2, 1, 'Economy'),
 ('S014', 'ACD003', 2, 2, 'Economy'),
 ('S015', 'ACD003', 3, 1, 'Economy'),
 ('S016', 'ACD003', 3, 2, 'Economy'),
--- AC004
+	
 ('S017', 'ACD004', 1, 1, 'Economy'),
 ('S018', 'ACD004', 1, 2, 'Economy'),
 ('S019', 'ACD004', 2, 1, 'Economy'),
 ('S020', 'ACD004', 2, 2, 'Economy'),
--- AC005
+	
 ('S021', 'ACA005', 1, 1, 'Business'),
 ('S022', 'ACA005', 1, 2, 'Business'),
 ('S023', 'ACA005', 2, 1, 'Economy'),
 ('S024', 'ACA005', 2, 2, 'Economy'),
 ('S025', 'ACA005', 3, 1, 'Economy'),
 ('S026', 'ACA005', 3, 2, 'Economy'),
--- AC006
+	
 ('S027', 'ACB006', 1, 1, 'Economy'),
 ('S028', 'ACB006', 1, 2, 'Economy'),
 ('S029', 'ACB006', 2, 1, 'Economy'),
 ('S030', 'ACB006', 2, 2, 'Economy');
 
-INSERT INTO Seats (Seat_id, Aircraft_id, Row_Num, Col_Num, Seat_Class) VALUES
 -- AC007 (Large, 6 seats: 3x2)
 ('S031', 'ACB007', 1, 1, 'Business'),
 ('S032', 'ACB007', 1, 2, 'Business'),
@@ -271,19 +268,16 @@ INSERT INTO Seats (Seat_id, Aircraft_id, Row_Num, Col_Num, Seat_Class) VALUES
 ('S035', 'ACB007', 3, 1, 'Economy'),
 ('S036', 'ACB007', 3, 2, 'Economy'),
 
--- AC008 (Small, 4 seats: 2x2)
 ('S037', 'ACA008', 1, 1, 'Economy'),
 ('S038', 'ACA008', 1, 2, 'Economy'),
 ('S039', 'ACA008', 2, 1, 'Economy'),
 ('S040', 'ACA008', 2, 2, 'Economy'),
 
--- AC009 (Small, 4 seats: 2x2)
 ('S041', 'ACD009', 1, 1, 'Economy'),
 ('S042', 'ACD009', 1, 2, 'Economy'),
 ('S043', 'ACD009', 2, 1, 'Economy'),
 ('S044', 'ACD009', 2, 2, 'Economy'),
 
--- AC010 (Large, 6 seats: 3x2)
 ('S047', 'ACB010', 1, 1, 'Business'),
 ('S048', 'ACB010', 1, 2, 'Business'),
 ('S049', 'ACB010', 2, 1, 'Economy'),
@@ -301,19 +295,16 @@ VALUES
     ('shira@flytau.com',  'Shira',  'Mutsafy',  '20000002',
      '2025-01-12 10:00:00', '1999-03-21 00:00:00', 'shiraPass1');
 
--- Phones for registered customers
 INSERT INTO Register_Customers_Phones (Customer_Email, Phone_Number) VALUES
     ('matan@flytau.com', '050-1111111'),
     ('shira@flytau.com', '050-2222222');
 
--- Guest customers
 INSERT INTO Guest_Customers
     (Customer_Email, First_Name, Last_Name)
 VALUES
     ('daniel@flytau.com', 'Daniel', 'Messer'),
     ('roni@flytau.com',   'Roni',   'Levy');
 
--- Phones for guest customers
 INSERT INTO Guest_Customers_Phones (Customer_Email, Phone_Number) VALUES
     ('daniel@flytau.com', '050-3333333'),
     ('roni@flytau.com',   '050-4444444');
@@ -340,12 +331,10 @@ VALUES
 ('400000009', 'מאיה',   'רגב',    'Tel Aviv',   'Ibn Gabirol',  9, '03-5000009', '2023-01-01 08:00:00', 0),
 ('400000010','עומר',    'שי',      'Rishon',     'Weizmann',    11, '03-5000010', '2023-06-01 08:00:00', 0),
 
--- new long-haul certified pilots – for F009
 ('400000011','דודי',    'כהן',    'Tel Aviv',   'Herzl',       50, '03-5000011', '2023-08-01 08:00:00', 1),
 ('400000012','שרון',    'לוי',    'Haifa',      'Hagana',      33, '04-5000012', '2023-08-01 08:00:00', 1),
 ('400000013','רינה',    'אלון',   'Jerusalem',  'King David',   9, '02-5000013', '2023-08-01 08:00:00', 1),
 
--- extra short-haul pilots – each one flight
 ('400000014','כפיר',    'בן דוד', 'Tel Aviv',   'Dizengoff',   15, '03-5000014', '2023-08-01 08:00:00', 0),
 ('400000015','מור',     'אליאס',  'Haifa',      'Herzl',       22, '04-5000015', '2023-08-01 08:00:00', 0),
 ('400000016','שחר',    'כהן',    'Beer Sheva', 'Rager',       18, '08-5000016', '2023-08-01 08:00:00', 0),
@@ -381,7 +370,6 @@ VALUES
 ('500000019','רועי',   'גולד',    'Rishon',     'Weizmann',   20,  '03-6000019', '2023-05-01 08:00:00', 0),
 ('500000020','דנה',    'שיר',     'Tel Aviv',   'Herzl',      40,  '03-6000020', '2023-07-01 08:00:00', 0),
 
--- new long-haul certified attendants – for F009
 ('500000021','אסף',    'לוין',    'Tel Aviv',   'Herzl',      45, '03-6000021', '2023-08-01 08:00:00', 1),
 ('500000022','רותם',   'כהן',     'Haifa',      'Hagana',     26, '04-6000022', '2023-08-01 08:00:00', 1),
 ('500000023','שקד',    'גיל',     'Jerusalem',  'Ben Yehuda', 11, '02-6000023', '2023-08-01 08:00:00', 1),
@@ -389,56 +377,28 @@ VALUES
 ('500000025','נוי',    'זיו',     'Ramat Gan',  'Jabotinsky', 17, '03-6000025', '2023-08-01 08:00:00', 1),
 ('500000026','רז',     'אוחנה',   'Beer Sheva', 'Rager',      29, '08-6000026', '2023-08-01 08:00:00', 1),
 
--- extra short-haul attendants – כל אחד טיסה אחת
 ('500000027','נטלי',  'כץ',      'Tel Aviv',   'Ibn Gabirol',13, '03-6000027', '2023-08-01 08:00:00', 0),
 ('500000028','עמית',  'בלום',    'Haifa',      'Herzl',      37, '04-6000028', '2023-08-01 08:00:00', 0),
 ('500000029','אורי',  'מגן',     'Jerusalem',  'King David', 19, '02-6000029', '2023-08-01 08:00:00', 0),
 ('500000030','גילי',  'דגן',     'Rishon',     'Weizmann',   27, '03-6000030', '2023-08-01 08:00:00', 0);
 
 
-/*INSERT INTO Flights(Flight_id, Dep_DateTime, Arr_DateTime, Status, Aircraft_id, Route_id) VALUES
-    -- Short flights (completed)
-    ('F001', '2025-06-01 08:00:00', '2025-06-01 11:30:00', 'Completed', 'AC002', 'R001'),
-    ('F002', '2025-06-02 09:00:00', '2025-06-02 13:00:00', 'Completed', 'AC004', 'R002'),
-
-    -- Long flights (completed) – only Large aircraft
-    ('F003', '2025-06-10 07:00:00', '2025-06-10 18:00:00', 'Completed', 'AC001', 'R003'),
-    ('F004', '2025-06-12 10:00:00', '2025-06-12 17:00:00', 'Completed', 'AC003', 'R004'),
-
-    -- (short, Large aircraft)
-    ('F005', '2025-06-15 14:00:00', '2025-06-15 17:00:00', 'Completed', 'AC005', 'R001'),
-    
-	('F006', '2025-06-20 09:00:00', '2025-06-20 12:00:00', 'Completed', 'AC006', 'R002'), 
-    
-    ('F007', '2025-06-22 08:00:00', '2025-06-22 11:30:00','Cancelled', 'AC002', 'R001'),
-
-    -- short flight TLV–CDG on a Small Dassault, cancelled
-    ('F008', '2025-06-28 09:00:00', '2025-06-28 13:00:00','Cancelled', 'AC004', 'R002'),
-
-    -- long flight TLV–JFK on a Large Boeing, cancelled
-    ('F009', '2025-07-20 07:00:00', '2025-07-20 18:00:00','Cancelled', 'AC001', 'R003');*/
-    
     
    INSERT INTO Flights(Flight_id, Dep_DateTime, Status, Aircraft_id, Route_id) VALUES
-    -- Short flights (completed)
     ('FT001', '2025-06-01 08:00:00', 'Completed', 'ACA002', 'R001'),
     ('FT002', '2025-06-02 09:00:00', 'Completed', 'ACD004', 'R002'),
 
-    -- Long flights (completed) – only Large aircraft
     ('FT003', '2025-06-10 07:00:00', 'Completed', 'ACB001', 'R003'),
     ('FT004', '2025-06-12 10:00:00', 'Completed', 'ACD003', 'R004'),
 
-    -- (short, Large aircraft)
     ('FT005', '2025-06-15 14:00:00', 'Completed', 'ACA005', 'R001'),
     
     ('FT006', '2025-06-20 09:00:00', 'Completed', 'ACB006', 'R002'), 
     
     ('FT007', '2025-06-22 08:00:00','Cancelled', 'ACA002', 'R001'),
 
-    -- short flight TLV–CDG on a Small Dassault, cancelled
     ('FT008', '2025-06-28 09:00:00','Cancelled', 'ACD004', 'R002'),
 
-    -- long flight JFK-TLV on a Large Boeing, cancelled
     ('FT009', '2025-07-20 07:00:00','Cancelled', 'ACB001', 'R005');
 
 INSERT INTO FlightSeats
@@ -450,13 +410,11 @@ VALUES
     ('FS000003', 'FT001', 'S009', 450.00, 'Available'),
     ('FS000004', 'FT001', 'S010', 450.00, 'Available'),
 
-    -- F002 on AC004 (Seats S005–S008)
     ('FS000005', 'FT002', 'S017', 400.00, 'Sold'),
     ('FS000006', 'FT002', 'S018', 400.00, 'Available'),
     ('FS000007', 'FT002', 'S019', 400.00, 'Available'),
     ('FS000008', 'FT002', 'S020', 400.00, 'Available'),
 
-    -- F003 on AC001 (Seats S001–S006) – long flight
     ('FS000009',  'FT003', 'S001', 1200.00, 'Sold'),
     ('FS000010',  'FT003', 'S002', 1200.00, 'Sold'),
     ('FS000011',  'FT003', 'S003', 800.00, 'Sold'),
@@ -464,7 +422,6 @@ VALUES
     ('FS000013',  'FT003', 'S005', 800.00, 'Available'),
     ('FS000014',  'FT003', 'S006', 800.00, 'Available'),
 
-    -- F004 on AC003 (Seats S011–S016) – long flight
     ('FS000015',  'FT004', 'S011', 1000.00, 'Sold'),
     ('FS000016',  'FT004', 'S012', 1000.00, 'Sold'),
     ('FS000017',  'FT004', 'S013', 500.00, 'Sold'),
@@ -472,7 +429,6 @@ VALUES
     ('FS000019',  'FT004', 'S015', 500.00, 'Available'),
     ('FS000020',  'FT004', 'S016', 500.00, 'Available'),
 
-    -- F005 on AC005 (Seats S021–S026)
     ('FS000021',  'FT005', 'S021', 900.00, 'Sold'),
     ('FS000022',  'FT005', 'S022', 900.00, 'Sold'),
     ('FS000023',  'FT005', 'S023', 600.00, 'Available'),
@@ -480,19 +436,16 @@ VALUES
     ('FS000025',  'FT005', 'S025', 600.00, 'Available'),
     ('FS000026',  'FT005', 'S026', 600.00, 'Available'),
     
-    -- F006 on AC006 (Seats S026–S030)
     ('FS000027', 'FT006', 'S027', 300.00, 'Sold'),
     ('FS000028', 'FT006', 'S028', 300.00, 'Sold'),
     ('FS000029', 'FT006', 'S029', 300.00, 'Available'),
     ('FS000030', 'FT006', 'S030', 300.00, 'Available'),
     
-    -- F007 on AC002
     ('FS000031', 'FT007', 'S007', 450.00, 'Blocked'),
     ('FS000032', 'FT007', 'S008', 450.00, 'Blocked'),
     ('FS000033', 'FT007', 'S009', 450.00, 'Blocked'),
     ('FS000034', 'FT007', 'S010', 450.00, 'Blocked'),
 
-    -- F008 on AC001
     ('FS000035', 'FT008', 'S001', 1200.00, 'Blocked'),
     ('FS000036', 'FT008', 'S002', 1200.00, 'Blocked'),
     ('FS000037', 'FT008', 'S003',  800.00, 'Blocked'),
@@ -500,7 +453,6 @@ VALUES
     ('FS000039', 'FT008', 'S005',  800.00, 'Blocked'),
     ('FS000040', 'FT008', 'S006',  800.00, 'Blocked'),
 
-    -- F009 on AC005
     ('FS000041', 'FT009', 'S021', 900.00, 'Blocked'),
     ('FS000042', 'FT009', 'S022', 900.00, 'Blocked'),
     ('FS000043', 'FT009', 'S023', 600.00, 'Blocked'),
