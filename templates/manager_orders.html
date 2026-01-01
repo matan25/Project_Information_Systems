@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}All Orders{% endblock %}
+
+{% block content %}
+<div class="page-main">
+  <div class="page-card page-card--wide">
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-title">All orders</h1>
+        <p class="subtitle">
+          Review all bookings in the system. Filter by status, flight or customer email.
+        </p>
+      </div>
+      <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+        Back to dashboard
+      </a>
+    </div>
+
+    <div class="manager-greeting-inline" style="margin-bottom:10px;">
+      <span class="manager-greeting-title">
+        Hello, {{ session.get('manager_name', 'Manager') }}!
+      </span>
+      <span class="manager-greeting-sub">
+        Keep an eye on bookings, cancellations and refunds.
+      </span>
+    </div>
+
+    <form method="get"
+          action="{{ url_for('main.manager_orders') }}"
+          class="toolbar toolbar--filters">
+      <div class="toolbar-group">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="all"
+                  {% if status_filter == 'all' or not status_filter %}selected{% endif %}>
+            All
+          </option>
+          <option value="Active"
+                  {% if status_filter == 'Active' %}selected{% endif %}>
+            Active
+          </option>
+          <option value="Completed"
+                  {% if status_filter == 'Completed' %}selected{% endif %}>
+            Completed
+          </option>
+          <option value="Cancelled-Customer"
+                  {% if status_filter == 'Cancelled-Customer' %}selected{% endif %}>
+            Cancelled by customer
+          </option>
+          <option value="Cancelled-System"
+                  {% if status_filter == 'Cancelled-System' %}selected{% endif %}>
+            Cancelled by system
+          </option>
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <label for="flight_id">Flight ID</label>
+        <input type="text"
+               id="flight_id"
+               name="flight_id"
+               value="{{ flight_id_filter or '' }}"
+               placeholder="e.g. F020">
+      </div>
+
+      <div class="toolbar-group">
+        <label for="customer_email">Customer email</label>
+        <input type="text"
+               id="customer_email"
+               name="customer_email"
+               value="{{ customer_email_filter or '' }}"
+               placeholder="contains...">
+      </div>
+
+      <button type="submit" class="btn-secondary toolbar-apply">
+        Apply filters
+      </button>
+    </form>
+
+    {% if orders %}
+      <div class="table-shell">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Status</th>
+              <th>Order date</th>
+              <th>Cancel date</th>
+              <th>Customer</th>
+              <th>Flight</th>
+              <th>Route</th>
+              <th>Departure</th>
+              <th>Tickets</th>
+              <th>Original total</th>
+              <th>Amount charged</th>
+              <th>Fee / Refund</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for o in orders %}
+            <tr>
+              <td>{{ o.Order_code }}</td>
+              <td>
+                {% if o.Order_Status == 'Active' %}
+                  <span class="badge badge--active">Active</span>
+                {% elif o.Order_Status == 'Completed' %}
+                  <span class="badge badge--completed">Completed</span>
+                {% elif o.Order_Status == 'Cancelled-Customer' %}
+                  <span class="badge badge--cancelled">Cancelled by customer</span>
+                {% elif o.Order_Status == 'Cancelled-System' %}
+                  <span class="badge badge--full">Cancelled by system</span>
+                {% else %}
+                  {{ o.Order_Status }}
+                {% endif %}
+              </td>
+              <td>{{ o.OrderDate_str }}</td>
+              <td>{{ o.CancelDate_str or '-' }}</td>
+              <td>
+                {% if o.Customer_Email %}
+                  <strong>{{ o.Customer_Name or 'N/A' }}</strong><br>
+                  <span class="field-hint">{{ o.Customer_Email }}</span>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>{{ o.Flight_id or '-' }}</td>
+              <td>
+                {% if o.Origin_Airport_code %}
+                  {{ o.Origin_Airport_code }} &rarr; {{ o.Destination_Airport_code }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>{{ o.Dep_str }}</td>
+              <td>{{ o.Ticket_Count }}</td>
+              <td>${{ "%.2f"|format(o.Original_Total) }}</td>
+              <td>${{ "%.2f"|format(o.Display_Total) }}</td>
+              <td>
+                {% if o.Cancellation_Fee is not none %}
+                  Fee: ${{ "%.2f"|format(o.Cancellation_Fee) }}<br>
+                  Refund: ${{ "%.2f"|format(o.Refund_Amount) }}
+                {% elif o.Order_Status == 'Cancelled-System' %}
+                  Refund: ${{ "%.2f"|format(o.Refund_Amount) }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h3>No orders found for these filters.</h3>
+        <p class="field-hint">
+          Try changing the status, flight ID or customer email above.
+        </p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

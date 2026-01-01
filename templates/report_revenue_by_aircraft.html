@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header-row">
+        <h1 class="page-title">Report 2: Revenue by aircraft &amp; seat class</h1>
+        <div>
+            <a href="{{ url_for('main.manager_reports_menu') }}" class="btn-secondary">
+                All reports
+            </a>
+            <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+                Manager dashboard
+            </a>
+        </div>
+    </div>
+
+    <p class="subtitle">
+        Aggregated revenue per aircraft size, manufacturer and seat class,
+        respecting the order and cancellation rules of the system.
+    </p>
+
+    {% if rows %}
+    <div class="table-wrapper" style="max-height: 480px; overflow-y: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Aircraft size</th>
+                    <th>Manufacturer</th>
+                    <th>Seat class</th>
+                    <th>Total revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td>{{ r.Aircraft_Size }}</td>
+                    <td>{{ r.Aircraft_Manufacturer }}</td>
+                    <td>{{ r.Seat_Class }}</td>
+                    <td>${{ r.Total_Revenue | round(2) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No revenue data available.</p>
+    {% endif %}
+</div>
+{% endblock %}

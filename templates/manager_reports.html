@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header-row">
+        <h1 class="page-title">Manager reports</h1>
+        <div>
+            <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+                Back to dashboard
+            </a>
+        </div>
+    </div>
+
+    <p class="subtitle">
+        Explore key analytics about flights, revenues, staff workload and aircraft utilization.
+    </p>
+
+    <div class="tiles-grid">
+        <div class="tile">
+            <h2>Flight load factor</h2>
+            <p>Seat occupancy for completed flights.</p>
+            <a href="{{ url_for('main.manager_report_load_factor') }}" class="btn-small">
+                Open report
+            </a>
+        </div>
+
+        <div class="tile">
+            <h2>Revenue by aircraft</h2>
+            <p>Income by aircraft size, manufacturer and seat class.</p>
+            <a href="{{ url_for('main.manager_report_revenue_by_aircraft') }}" class="btn-small">
+                Open report
+            </a>
+        </div>
+
+        <div class="tile">
+            <h2>Employee flight hours</h2>
+            <p>Long vs. short flight hours per pilot and attendant.</p>
+            <a href="{{ url_for('main.manager_report_employee_hours') }}" class="btn-small">
+                Open report
+            </a>
+        </div>
+
+        <div class="tile">
+            <h2>Cancellation rate</h2>
+            <p>Monthly cancellation share of all orders.</p>
+            <a href="{{ url_for('main.manager_report_cancellation_rate') }}" class="btn-small">
+                Open report
+            </a>
+        </div>
+
+        <div class="tile">
+            <h2>Aircraft monthly activity</h2>
+            <p>Completion, cancellations and utilization per aircraft.</p>
+            <a href="{{ url_for('main.manager_report_aircraft_monthly_activity') }}" class="btn-small">
+                Open report
+            </a>
+        </div>
+    </div>
+
+     {# תמונת הגרף בתחתית החלון – מוגדלת #}
+    <div style="margin-top: 32px; text-align: center;">
+        <img src="{{ url_for('static', filename='img/graph.png') }}"
+             alt="Manager analytics overview graph"
+             style="width: 100%; max-width: 1200px; height: auto; border-radius: 12px;">
+    </div>
+</div>
+{% endblock %}

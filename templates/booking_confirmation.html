@@ -1,0 +1,280 @@
+{# templates/booking_confirmation.html #}
+{% extends "base.html" %}
+
+{% block title %}Booking confirmation{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cancel-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .cancel-modal-backdrop.is-visible {
+    display: flex;
+  }
+
+  .cancel-modal-dialog {
+    max-width: 420px;
+    width: 100%;
+    background: #0b1022;
+    border-radius: 16px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+    padding: 20px 22px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #f9fafb;
+  }
+
+  .cancel-modal-title {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .cancel-modal-body {
+    font-size: 14px;
+    color: #cbd5f5;
+    margin-bottom: 18px;
+  }
+
+  .cancel-modal-body strong {
+    color: #ffffff;
+  }
+
+  .cancel-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn-ghost-light {
+    border-radius: 999px;
+    padding: 6px 16px;
+    border: 1px solid rgba(148, 163, 255, 0.6);
+    background: transparent;
+    color: #e5e7ff;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .btn-ghost-light:hover {
+    background: rgba(129, 140, 248, 0.15);
+  }
+
+  .btn-danger-primary {
+    border-radius: 999px;
+    padding: 6px 16px;
+    border: none;
+    background: #b91c1c;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .btn-danger-primary:hover {
+    background: #dc2626;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const backdrop = document.getElementById("guest-cancel-modal");
+    if (!backdrop) {
+      return;
+    }
+
+    const orderSpan = document.getElementById("guest-cancel-modal-order-code");
+    const keepBtn = document.getElementById("guest-cancel-modal-keep");
+    const confirmBtn = document.getElementById("guest-cancel-modal-confirm");
+
+    let pendingForm = null;
+
+    document.querySelectorAll(".js-open-guest-cancel-modal").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        pendingForm = this.closest("form");
+        const orderCode = this.getAttribute("data-order-code") || "";
+        if (orderSpan) {
+          orderSpan.textContent = orderCode;
+        }
+        backdrop.classList.add("is-visible");
+      });
+    });
+
+    if (keepBtn) {
+      keepBtn.addEventListener("click", function () {
+        backdrop.classList.remove("is-visible");
+        pendingForm = null;
+      });
+    }
+
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", function () {
+        if (pendingForm) {
+          pendingForm.submit();
+        }
+      });
+    }
+
+    backdrop.addEventListener("click", function (e) {
+      if (e.target === backdrop) {
+        backdrop.classList.remove("is-visible");
+        pendingForm = null;
+      }
+    });
+  });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="page-main">
+  <div class="page-card">
+    <h1 class="page-title">Booking confirmation</h1>
+    <div class="page-header-left">
+      <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+           alt="FLYTAU logo"
+           class="flytau-logo">
+    </div>
+    <p class="subtitle">
+      Your booking details are shown below.
+    </p>
+
+    <p style="color:#e74c3c; font-size: 13px; margin-top: 4px;">
+      Important: Orders can be cancelled at most <strong>36 hours before departure</strong>.
+      After this time the order becomes <strong>Completed</strong> and can no longer be cancelled.
+    </p>
+
+    {% if just_confirmed %}
+      <div style="
+        padding: 12px 16px;
+        border-radius: 10px;
+        background: #e9f7ef;
+        border: 1px solid #2ecc71;
+        margin-bottom: 16px;
+        color: #145a32;
+      ">
+        <strong>Booking confirmed successfully!</strong>
+        <p style="margin: 6px 0 10px;">
+          Your order has been created and the seats are reserved for you.
+        </p>
+      </div>
+    {% endif %}
+
+    <div style="margin-bottom: 20px;">
+      <p>
+        <strong>Order ID:</strong> {{ order.Order_code }}<br>
+        <strong>Order time:</strong> {{ order.OrderDate_str }}<br>
+        <strong>Status:</strong> {{ order.Order_Status }}<br>
+        <strong>Flight:</strong> {{ order.Flight_id }}
+        ({{ order.Origin_Airport_code }} &rarr; {{ order.Destination_Airport_code }})<br>
+        <strong>Departure:</strong> {{ order.Dep_str }}<br>
+        <strong>Arrival (calculated):</strong> {{ order.Arr_str }}<br>
+        <strong>Customer name:</strong>
+        {{ order.First_Name }} {{ order.Last_Name }}<br>
+        <strong>Customer email:</strong> {{ order.Customer_Email }}
+      </p>
+    </div>
+
+    <h2 style="font-size: 18px; margin-bottom: 10px;">Tickets</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Seat</th>
+          <th>Class</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tickets %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>Row {{ t.Row_Num }} / Seat {{ t.Col_Num }}</td>
+            <td>{{ t.Seat_Class }}</td>
+            <td>${{ "%.2f"|format(t.Seat_Price) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="text-align: right; margin-top: 15px; font-size: 16px;">
+      Total price:
+      <strong>${{ "%.2f"|format(total_price) }}</strong>
+    </div>
+
+    {% if order.Order_Status == 'Cancelled-Customer' %}
+      <p class="field-hint" style="margin-top: 6px; color:#f5f7ff;">
+        Original total: ${{ "%.2f"|format(order.Original_Total) }} &mdash;
+        Cancellation fee (5%): ${{ "%.2f"|format(order.Cancellation_Fee) }}.
+        Refund amount: ${{ "%.2f"|format(order.Refund_Amount) }}.
+      </p>
+    {% elif order.Order_Status == 'Cancelled-System' %}
+      <p class="field-hint" style="margin-top: 6px; color:#f5f7ff;">
+        This flight was cancelled by the airline. You are entitled to a full refund.
+      </p>
+    {% endif %}
+
+    <p class="field-hint" style="margin-top: 10px; color:#f5f7ff;">
+      Please keep your order ID and email address &ndash; guests can later view
+      this booking using the "Guest booking lookup" screen.
+    </p>
+
+    <div class="form-actions"
+         style="margin-top: 30px; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+      <a href="{{ url_for('main.search_flights') }}" class="btn-secondary">
+        Back to search flights
+      </a>
+
+      {% if is_registered %}
+        <a href="{{ url_for('main.customer_orders') }}" class="btn-primary">
+          Back to my orders
+        </a>
+      {% else %}
+        <a href="{{ url_for('main.guest_order_lookup') }}" class="btn-secondary">
+          Guest booking lookup
+        </a>
+
+        {% if order.can_cancel_as_guest %}
+          <form method="post"
+                action="{{ url_for('main.guest_cancel_order', order_code=order.Order_code) }}"
+                style="display: inline;">
+            <button type="button"
+                    class="btn-secondary js-open-guest-cancel-modal"
+                    data-order-code="{{ order.Order_code }}"
+                    style="background-color:#c0392b; border-color:#c0392b;">
+              Cancel this booking
+            </button>
+          </form>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div id="guest-cancel-modal" class="cancel-modal-backdrop">
+  <div class="cancel-modal-dialog">
+    <h2 class="cancel-modal-title">Cancel this booking?</h2>
+    <div class="cancel-modal-body">
+      You are about to cancel order
+      <strong><span id="guest-cancel-modal-order-code"></span></strong>.<br>
+      A <strong>5% cancellation fee</strong> will be applied,
+      and the remaining amount will be refunded according to the policy.<br>
+      Cancellation is only possible up to 36 hours before departure.
+    </div>
+    <div class="cancel-modal-actions">
+      <button type="button" id="guest-cancel-modal-keep" class="btn-ghost-light">
+        Keep my booking
+      </button>
+      <button type="button" id="guest-cancel-modal-confirm" class="btn-danger-primary">
+        Confirm cancellation
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

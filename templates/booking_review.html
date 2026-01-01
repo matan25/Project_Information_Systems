@@ -1,0 +1,126 @@
+{# templates/booking_review.html #}
+{% extends "base.html" %}
+
+{% block title %}Review booking{% endblock %}
+
+{% block content %}
+<div class="page-main">
+  <div class="page-card">
+    <h1 class="page-title">Review and confirm booking</h1>
+     <div class="page-header-left">
+        <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+             alt="FLYTAU logo"
+             class="flytau-logo">
+      </div>
+    <p class="subtitle">
+      Please review the flight details, selected seats and total price.
+      The order will be created only after final confirmation.
+    </p>
+
+    <div style="margin-bottom: 20px;">
+      <p>
+        <strong>Flight:</strong> {{ flight.Flight_id }}
+        ({{ flight.Origin_Airport_code }} &rarr; {{ flight.Destination_Airport_code }})<br>
+        <strong>Departure:</strong> {{ flight.Dep_str }}<br>
+        <strong>Arrival (calculated):</strong> {{ flight.Arr_str }}<br>
+        <strong>Aircraft:</strong> {{ flight.Model }}
+      </p>
+    </div>
+
+    <div style="
+          margin-bottom: 20px;
+          padding: 16px;
+          border-radius: 12px;
+          background: #f7f9fc;
+          color: #0b225e;
+    ">
+      {% if is_registered and customer %}
+        <h3 style="margin-top: 0;">Passenger details (registered customer)</h3>
+        <p style="margin-bottom: 4px;">
+          <strong>Name:</strong> {{ customer.First_Name }} {{ customer.Last_Name }}<br>
+          <strong>Email:</strong> {{ customer.Customer_Email }}<br>
+          <strong>Passport:</strong> {{ customer.Passport_No or "-" }}<br>
+          <strong>Birth date:</strong>
+          {{ customer.Birth_Date.strftime("%d/%m/%Y") if customer.Birth_Date else "-" }}
+        </p>
+        {% if customer_phones %}
+          <p style="margin-top: 4px; margin-bottom: 0;">
+            <strong>Phone numbers:</strong> {{ customer_phones|join(", ") }}
+          </p>
+        {% endif %}
+      {% else %}
+        <h3 style="margin-top: 0;">Passenger details (guest)</h3>
+        <p style="margin-bottom: 0;">
+          <strong>{{ guest_info.first_name }} {{ guest_info.last_name }}</strong><br>
+          <span style="font-size: 13px; color: #0b225e;">
+            {{ guest_info.email }}
+          </span><br>
+          {% if guest_info.phones %}
+            <span style="color:#0b225e;">
+              Phone{% if guest_info.phones|length > 1 %}s{% endif %}:
+              {{ guest_info.phones|join(", ") }}
+            </span>
+          {% else %}
+            <span style="color:#0b225e;">Phone: -</span>
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+
+    <h2 style="font-size: 18px; margin-bottom: 10px;">Selected seats</h2>
+    {% if seats %}
+      <div style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; border-radius: 12px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Seat</th>
+              <th>Class</th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in seats %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>Row {{ s.Row_Num }} / Seat {{ s.Col_Num }}</td>
+                <td>{{ s.Seat_Class }}</td>
+                <td>${{ "%.2f"|format(s.Seat_Price) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No seats selected.</p>
+    {% endif %}
+
+    <div style="text-align: right; margin-top: 15px; font-size: 16px;">
+      Total price:
+      <strong>${{ "%.2f"|format(total_price) }}</strong>
+    </div>
+
+    <p class="field-hint" style="margin-top: 8px; color:#f5f7ff;">
+      No online payment. By clicking "Confirm booking" your order will be
+      created and the seats will be reserved for you.
+    </p>
+
+    <div class="form-actions"
+         style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <a href="{{ url_for('main.select_seats', flight_id=flight.Flight_id) }}"
+         class="btn-secondary">
+        Back to seat selection
+      </a>
+
+      <form method="post"
+            action="{{ url_for('main.confirm_booking') }}"
+            style="margin: 0;">
+        <button type="submit" class="btn-primary"
+                onclick="this.disabled=true; this.innerText='Confirming...'; this.form.submit();">
+          Confirm booking
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,1518 @@
+/* ========== Reset ========== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #f4f7ff;
+}
+
+/* רקע כללי – לילה מעל הים */
+body {
+    background: radial-gradient(circle at top, #1a2a5b 0, #050815 55%, #000000 100%);
+}
+
+/* ========== Links & buttons basics ========== */
+
+a {
+    color: #5fd5ff;
+    text-decoration: none;
+    transition: color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+}
+
+a:hover {
+    text-decoration: none;
+    opacity: 0.9;
+}
+
+button {
+    font-family: inherit;
+}
+
+/* Primary pill button */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 24px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(120deg, #4cf1ff, #00a7ff);
+    color: #031024;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Secondary button */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(13, 24, 52, 0.7);
+    color: #e3ebff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(19, 35, 78, 0.9);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* Small pill */
+.btn-small {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    background: rgba(11, 23, 55, 0.8);
+    color: #e3ebff;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-small:hover {
+    background: rgba(24, 45, 99, 0.95);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* ========== Layout ========== */
+
+.page-main {
+    min-height: calc(100vh - 110px);
+    padding: 96px 16px 40px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Center variant */
+.page-main--centered {
+    align-items: center;
+}
+
+/* Card shells */
+.page-card {
+    width: 100%;
+    max-width: 1180px;
+    background: radial-gradient(circle at top left, rgba(46, 82, 150, 0.98), rgba(11, 20, 46, 0.98));
+    border-radius: 28px;
+    padding: 26px 32px 26px;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.85);
+    color: #f4f7ff;
+    border: 1px solid rgba(115, 158, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.page-card::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background: radial-gradient(circle at 0 0, rgba(76, 241, 255, 0.08), transparent 60%);
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+.page-card > * {
+    position: relative;
+}
+
+/* Narrow manager card */
+.manager-card {
+    max-width: 640px;
+}
+
+/* Wider tables shell */
+.page-card--wide {
+    max-width: 1180px;
+}
+
+/* Dashboard */
+.page-card--dashboard {
+    max-width: 1180px;
+}
+
+/* ========== Top bar ========== */
+
+.top-bar {
+    height: 72px;
+    padding: 0 18px;
+    background: linear-gradient(90deg, rgba(2, 8, 28, 0.92), rgba(6, 19, 52, 0.96));
+    border-bottom: 1px solid rgba(115, 158, 255, 0.4);
+    backdrop-filter: blur(16px);
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 99;
+}
+
+.top-bar-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Brand area */
+.brand-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-logo-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 30% 20%, #4cf1ff, #007bff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.8);
+    overflow: hidden;              /* חיתוך של הלוגו לעיגול */
+}
+
+/* לוגו גם בעיגול של דף הבית */
+.hero-logo-circle {
+    width: 110px;
+    height: 110px;
+    border-radius: 999px;
+    margin: 0 auto 10px;
+    background: radial-gradient(circle at 20% 20%, #4cf1ff, #007bff 65%, #00153b 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9);
+    overflow: hidden;
+}
+
+/* הלוגו בתוך העיגול – שלא יופיע כריבוע */
+.brand-logo-circle img,
+.hero-logo-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.brand-title {
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    font-size: 15px;
+    text-transform: uppercase;
+    color: #f5fbff;
+}
+
+.brand-subtitle {
+    font-size: 11px;
+    color: #9baad7;
+}
+
+/* Greeting in header */
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.top-greeting {
+    display: flex;
+    flex-direction: column;
+    font-size: 11px;
+    color: #a8b7ff;
+}
+
+.top-greeting-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: #f4f7ff;
+}
+
+/* Nav */
+.top-nav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 13px;
+}
+
+.top-nav-link {
+    color: #d4ddff;
+    padding: 4px 8px;
+    border-radius: 999px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.top-nav-link:hover {
+    background: rgba(70, 110, 220, 0.4);
+    color: #ffffff;
+}
+
+/* Sign in/out pills */
+.top-nav-pill {
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(122, 170, 255, 0.75);
+    font-size: 13px;
+    color: #f4f7ff;
+    background: radial-gradient(circle at top, #305cff, #152345);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8);
+}
+
+.top-nav-pill--ghost {
+    border-color: rgba(122, 170, 255, 0.45);
+    background: transparent;
+}
+
+.top-nav-pill--disabled {
+    opacity: 0.52;
+    cursor: default;
+    border-style: dashed;
+}
+
+/* ========== Workflow banner (אינדיקציה ששינוי טיסה פעיל) ========== */
+
+.workflow-banner {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(1180px, 90vw);
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(0, 226, 255, 0.12), rgba(0, 66, 150, 0.7));
+    border: 1px solid rgba(116, 168, 255, 0.8);
+    font-size: 11px;
+    color: #e2ecff;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    z-index: 90;
+}
+
+.workflow-title {
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+.workflow-sub {
+    opacity: 0.95;
+}
+
+/* ========== Footer ========== */
+
+.page-footer {
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #7f8dc0;
+}
+
+/* ========== Typography helpers ========== */
+
+.page-title {
+    margin: 0 0 10px;
+    font-size: 24px;
+    font-weight: 650;
+    color: #ffffff;
+}
+
+.subtitle {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #c3d1ff;
+}
+
+.section-title {
+    margin: 0 0 8px;
+    font-size: 18px;
+}
+
+.section-subtitle {
+    margin: 0 0 6px;
+    font-size: 14px;
+}
+
+.field-hint,
+.form-hint {
+    font-size: 11px;
+    color: #a7b5e5;
+}
+
+/* Greeting banners inside cards */
+.manager-greeting-banner {
+    margin: 10px 0 16px;
+    padding: 10px 14px;
+    border-radius: 18px;
+    background: linear-gradient(90deg, rgba(0, 226, 255, 0.09), rgba(0, 52, 120, 0.5));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid rgba(106, 176, 255, 0.45);
+}
+
+.manager-greeting-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.manager-greeting-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.manager-greeting-sub {
+    font-size: 11px;
+    color: #c2d3ff;
+}
+
+.manager-greeting-logo img {
+    max-height: 38px;
+    filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.8));
+}
+
+.manager-greeting-inline {
+    margin: 10px 0 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(122, 170, 255, 0.5);
+    background: linear-gradient(90deg, rgba(11, 30, 79, 0.85), rgba(0, 114, 204, 0.3));
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ========== Headers & toolbars ========== */
+
+.page-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+}
+
+.page-header-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Filters toolbar */
+.toolbar {
+    margin-top: 14px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: flex-end;
+    padding: 10px 12px;
+    border-radius: 18px;
+    background: rgba(8, 18, 52, 0.9);
+    border: 1px solid rgba(120, 163, 255, 0.4);
+}
+
+.toolbar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 150px;
+}
+
+.toolbar-group label {
+    font-size: 11px;
+    color: #a3b1e4;
+}
+
+.toolbar-apply {
+    margin-left: auto;
+}
+
+/* ========== Forms & inputs ========== */
+
+.form-row {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-row label {
+    font-size: 12px;
+    color: #cdd8ff;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="number"],
+input[type="datetime-local"],
+select {
+    border-radius: 999px;
+    border: 1px solid rgba(119, 152, 252, 0.65);
+    background-color: #050b20;             /* רקע כהה */
+    background-image: linear-gradient(145deg, #141a3a, #050b20);
+    color: #f4f7ff;
+    padding: 7px 14px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s ease,
+                box-shadow 0.15s ease,
+                background 0.15s ease;
+}
+
+input::placeholder {
+    color: #7d8acf;
+}
+
+input:focus,
+select:focus {
+    border-color: #4cf1ff;
+    box-shadow: 0 0 0 3px rgba(76, 241, 255, 0.25);
+    background-image: linear-gradient(145deg, #1a2349, #050b20);
+}
+
+select {
+    appearance: none;
+}
+
+/* בטבלאות – לוודא שאין listbox לבן */
+.table-shell select {
+    background-color: #050b20;
+    background-image: none;
+    color: #f4f7ff;
+}
+
+/* Multiple select (אם תשתמש) */
+select[multiple] {
+    border-radius: 18px;
+    min-height: 190px;
+    padding: 10px 12px;
+}
+
+/* Auth cards */
+.auth-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 110px);
+}
+
+.auth-card {
+    width: 430px;
+    max-width: 100%;
+    padding: 26px 28px 26px;
+    border-radius: 28px;
+    background: radial-gradient(circle at top, #1c285a, #050c20);
+    box-shadow: 0 26px 60px rgba(0, 0, 0, 0.88);
+    border: 1px solid rgba(134, 164, 255, 0.5);
+}
+
+.auth-card--info {
+    text-align: center;
+}
+
+.auth-title {
+    margin: 6px 0 4px;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.auth-subtitle {
+    margin: 0 0 18px;
+    font-size: 13px;
+    color: #b2c1ff;
+}
+
+.auth-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.auth-logo img {
+    max-width: 72px;
+    filter: drop-shadow(0 15px 40px rgba(0, 0, 0, 0.9));
+}
+
+.auth-form .form-row {
+    margin-bottom: 14px;
+}
+
+.auth-submit {
+    width: 100%;
+}
+
+/* Guest box */
+.auth-divider {
+    margin-top: 14px;
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 11px;
+    color: #94a2db;
+    position: relative;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(148, 162, 219, 0.8));
+}
+
+.auth-divider::before {
+    left: 0;
+}
+
+.auth-divider::after {
+    right: 0;
+}
+
+.guest-box {
+    padding: 10px 12px;
+    border-radius: 18px;
+    background: rgba(5, 19, 56, 0.9);
+    border: 1px solid rgba(116, 158, 255, 0.5);
+}
+
+.guest-title {
+    margin: 0 0 6px;
+    font-size: 16px;
+}
+
+.guest-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+/* Form actions */
+.form-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.form-actions--flight {
+    justify-content: space-between;
+}
+
+/* ========== Tables ========== */
+
+.table-shell {
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: 20px;
+    border: 1px solid rgba(116, 158, 255, 0.5);
+    background: rgba(5, 11, 32, 0.95);
+}
+
+.table-shell--seats {
+    max-height: 380px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.data-table thead {
+    background: linear-gradient(90deg, rgba(19, 35, 88, 0.96), rgba(38, 72, 162, 0.96));
+}
+
+.data-table th,
+.data-table td {
+    padding: 7px 9px;
+    border-bottom: 1px solid rgba(83, 116, 185, 0.5);
+}
+
+.data-table th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #c4d0ff;
+}
+
+.data-table tr:nth-child(even) td {
+    background: rgba(7, 17, 47, 0.9);
+}
+
+.data-table tr:nth-child(odd) td {
+    background: rgba(4, 10, 30, 0.98);
+}
+
+.data-table tr:hover td {
+    background: rgba(44, 74, 155, 0.75);
+}
+
+.data-table.compact th,
+.data-table.compact td {
+    padding: 5px 7px;
+}
+
+.table-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid transparent;
+}
+
+.badge--short {
+    background: rgba(128, 255, 203, 0.2);
+    border-color: rgba(128, 255, 203, 0.9);
+}
+
+.badge--long {
+    background: rgba(255, 220, 128, 0.18);
+    border-color: rgba(255, 220, 128, 0.9);
+}
+
+.badge--active {
+    background: rgba(76, 241, 255, 0.16);
+    border-color: rgba(76, 241, 255, 0.9);
+}
+
+.badge--completed {
+    background: rgba(0, 218, 154, 0.21);
+    border-color: rgba(0, 218, 154, 0.9);
+}
+
+.badge--cancelled {
+    background: rgba(255, 77, 109, 0.2);
+    border-color: rgba(255, 77, 109, 0.9);
+}
+
+.badge--full {
+    background: rgba(255, 196, 0, 0.2);
+    border-color: rgba(255, 196, 0, 0.95);
+}
+
+/* Empty state */
+.empty-state {
+    padding: 30px;
+    text-align: center;
+}
+
+/* ========== Hero (home) ========== */
+
+.hero-shell {
+    width: 100%;
+    max-width: 1180px;
+    display: grid;
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+    gap: 24px;
+}
+
+.hero-logo-panel {
+    border-radius: 28px;
+    padding: 24px 18px;
+    background: radial-gradient(circle at top, #092b46, #020716);
+    border: 1px solid rgba(125, 174, 255, 0.5);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9);
+    text-align: center;
+}
+
+.hero-logo-title {
+    margin: 0 0 4px;
+    font-size: 26px;
+    letter-spacing: 0.15em;
+}
+
+.hero-logo-sub {
+    margin: 0;
+    font-size: 12px;
+    color: #b3c4ff;
+}
+
+.hero-content-panel {
+    border-radius: 28px;
+    padding: 26px 24px;
+    background: linear-gradient(140deg, rgba(10, 26, 66, 0.98), rgba(4, 13, 34, 0.98));
+    border: 1px solid rgba(129, 175, 255, 0.5);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9);
+}
+
+.hero-title {
+    margin: 0 0 6px;
+    font-size: 28px;
+    font-weight: 650;
+}
+
+.hero-subtitle {
+    margin: 0 0 18px;
+    font-size: 14px;
+    color: #c0d1ff;
+}
+
+.hero-columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.hero-column {
+    flex: 1 1 230px;
+}
+
+.hero-column h2 {
+    margin: 0 0 6px;
+    font-size: 17px;
+}
+
+.hero-column p {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #b2c3ff;
+}
+
+.hero-column-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.hero-btn {
+    margin-top: 6px;
+}
+
+.hero-link {
+    font-size: 12px;
+    color: #6fd7ff;
+}
+
+/* ========== Manager tiles ========== */
+
+.tiles-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.tiles-grid--dashboard .tile {
+    flex: 1 1 240px;
+}
+
+.tile {
+    padding: 16px 16px;
+    border-radius: 20px;
+    background: radial-gradient(circle at top left, #15265a, #050d25);
+    border: 1px solid rgba(121, 160, 255, 0.55);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.8);
+}
+
+.tile--gradient {
+    background: linear-gradient(145deg, rgba(20, 55, 135, 0.98), rgba(10, 25, 71, 0.98));
+}
+
+.tile h2 {
+    margin: 0 0 8px;
+    font-size: 17px;
+}
+
+.tile p {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #c1cffd;
+}
+
+/* ========== Crew layout ========== */
+
+.crew-columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 10px;
+}
+
+.crew-column {
+    flex: 1 1 260px;
+}
+
+.crew-column h2 {
+    margin: 0 0 6px;
+    font-size: 16px;
+}
+
+.crew-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 13px;
+}
+
+.crew-scroll-box {
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 8px 10px;
+    border-radius: 18px;
+    background: rgba(5, 11, 35, 0.96);
+    border: 1px solid rgba(116, 158, 255, 0.6);
+}
+
+.crew-scroll-box--history {
+    max-height: 200px;
+}
+
+.crew-scroll-box label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 3px 0;
+}
+
+.crew-scroll-box input[type="checkbox"] {
+    margin: 0;
+}
+
+.crew-history-item {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(101, 133, 205, 0.4);
+}
+
+/* ========== Cards header in forms ========== */
+
+.card-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+
+.card-form-logo img {
+    max-height: 64px;
+    filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.9));
+}
+
+/* Legend for seats */
+.seat-legend {
+    margin-top: 6px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ========== Flash messages ========== */
+
+.flash-container {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 120;
+    width: min(1180px, 90vw);
+    pointer-events: none;
+}
+
+.flash {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    margin-bottom: 6px;
+    pointer-events: auto;
+    backdrop-filter: blur(12px);
+    color: #fff;
+}
+
+.flash-error {
+    background: rgba(255, 77, 109, 0.26);
+    border: 1px solid rgba(255, 77, 109, 0.9);
+}
+
+.flash-success {
+    background: rgba(0, 218, 154, 0.26);
+    border: 1px solid rgba(0, 218, 154, 0.9);
+}
+
+/* ========== Responsive ========== */
+
+@media (max-width: 900px) {
+    .hero-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .page-main {
+        padding: 92px 10px 32px;
+    }
+
+    .page-card,
+    .hero-logo-panel,
+    .hero-content-panel {
+        padding: 20px 16px 22px;
+        border-radius: 22px;
+    }
+
+    .page-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .tiles-grid--dashboard .tile {
+        flex-basis: 100%;
+    }
+
+    .top-bar-inner {
+        gap: 10px;
+    }
+
+    .top-greeting {
+        display: none;
+    }
+
+    .hero-shell {
+        gap: 16px;
+    }
+
+    .manager-greeting-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .card-form-header {
+        flex-direction: column-reverse;
+        align-items: flex-start;
+    }
+
+    .table-shell {
+        max-height: 55vh;
+    }
+
+    .workflow-banner {
+        top: 78px;
+        font-size: 10px;
+    }
+}
+/* ========== Generic page shell for manager steps ========== */
+
+.page-shell {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 10px 0 32px;
+}
+
+/* כרטיס טופס כללי (עבור יצירת/עריכת טיסה, צוות, מחירים) */
+.form-card {
+    background: radial-gradient(circle at top left, rgba(46, 82, 150, 0.98), rgba(11, 20, 46, 0.98));
+    border-radius: 28px;
+    padding: 24px 28px 22px;
+    box-shadow: 0 26px 64px rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(115, 158, 255, 0.45);
+    color: #f4f7ff;
+    position: relative;
+}
+
+.form-card.wide {
+    padding-left: 26px;
+    padding-right: 26px;
+}
+
+/* כותרת עליונה של כרטיס טופס (טקסט + לוגו קטן בצד) */
+.card-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.card-form-logo img {
+    max-height: 64px;
+    filter: drop-shadow(0 16px 38px rgba(0, 0, 0, 0.9));
+}
+
+/* כותרות משנה בתוך כרטיס הטופס */
+.form-section-title {
+    margin: 12px 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+/* טקסט עזר מתחת לכותרות */
+.hint-text {
+    font-size: 12px;
+    color: #a7b5e5;
+    margin: 0 0 8px;
+}
+
+.hint-text.error-text {
+    color: #ff9bb3;
+}
+
+/* Grid של שדות */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px 16px;
+    margin-bottom: 12px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-group label {
+    font-size: 12px;
+    color: #cdd8ff;
+}
+
+/* שורת כפתורים בתחתית טופס */
+.btn-row {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.flex-spacer {
+    flex: 1;
+}
+
+/* ========== Aircraft cards in flight form ========== */
+
+.aircraft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.aircraft-card {
+    border-radius: 20px;
+    padding: 10px 12px;
+    background: radial-gradient(circle at top left, #15265a, #050d25);
+    border: 1px solid rgba(121, 160, 255, 0.55);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease, background 0.1s ease;
+    font-size: 13px;
+}
+
+.aircraft-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.9);
+    border-color: rgba(155, 188, 255, 0.95);
+}
+
+.aircraft-card.selected {
+    border-color: #4cf1ff;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.95);
+    background: linear-gradient(135deg, rgba(20, 55, 135, 1), rgba(6, 22, 66, 0.98));
+}
+
+.aircraft-name {
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 2px;
+}
+
+.aircraft-meta {
+    font-size: 11px;
+    color: #c3d1ff;
+}
+
+/* ========== Hero card (crew / seats headers) ========== */
+
+.hero-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    margin-bottom: 16px;
+    background: radial-gradient(circle at top left, #1d2d61, #050c20);
+    border: 1px solid rgba(129, 175, 255, 0.5);
+    box-shadow: 0 26px 64px rgba(0, 0, 0, 0.9);
+    min-height: 150px;
+}
+
+.hero-card.small-hero {
+    min-height: 140px;
+}
+
+.hero-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.18;
+}
+
+.hero-overlay {
+    position: relative;
+    padding: 18px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.hero-title {
+    margin: 0 0 4px;
+    font-size: 26px;
+    font-weight: 650;
+    color: #ffffff;
+}
+
+.hero-subtitle {
+    margin: 0;
+    font-size: 13px;
+    color: #c0d1ff;
+}
+
+.hero-badge {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(122, 170, 255, 0.75);
+    font-size: 11px;
+    background: rgba(8, 23, 70, 0.9);
+    color: #e2ecff;
+}
+
+.badge-readonly {
+    border-color: rgba(255, 196, 0, 0.95);
+    background: rgba(255, 196, 0, 0.16);
+    color: #ffecc0;
+}
+
+/* ========== Crew form ========== */
+
+.crew-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.crew-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-bottom: 10px;
+}
+
+.crew-column {
+    flex: 1 1 260px;
+}
+
+.crew-column .section-title {
+    margin-bottom: 4px;
+}
+
+.crew-column .hint {
+    margin: 0 0 6px;
+    font-size: 11px;
+    color: #a7b5e5;
+}
+
+/* שדות בחירה מרובה – כהים ויפים */
+.form-multiselect,
+.dark-multiselect {
+    border-radius: 18px;
+    border: 1px solid rgba(119, 152, 252, 0.8);
+    background-color: #050b20;
+    background-image: linear-gradient(145deg, #141a3a, #050b20);
+    color: #f4f7ff;
+    padding: 6px 10px;
+    font-size: 13px;
+    outline: none;
+    min-height: 210px;
+}
+
+.form-multiselect option {
+    padding: 2px 3px;
+}
+
+/* ========== Seat pricing table ========== */
+
+.seats-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.seats-table .readonly-value {
+    font-size: 13px;
+}
+
+.form-input.small-input,
+.dark-select.small-select {
+    width: 100%;
+    max-width: 210px;
+}
+
+/* chips למעמד המושב */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    border: 1px solid transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.chip--business {
+    background: rgba(0, 218, 154, 0.18);
+    border-color: rgba(0, 218, 154, 0.9);
+    color: #c4ffea;
+}
+
+.chip--economy {
+    background: rgba(111, 215, 255, 0.18);
+    border-color: rgba(111, 215, 255, 0.9);
+    color: #d5f3ff;
+}
+
+/* סטטוסי מושבים */
+.readonly-value.status-available {
+    color: #c4ffea;
+}
+
+.readonly-value.status-blocked {
+    color: #ffd8a0;
+}
+
+.readonly-value.status-sold {
+    color: #ffb1c3;
+}
+
+/* התאמות רספונסיביות לכרטיסי הטפסים */
+@media (max-width: 768px) {
+    .form-card {
+        padding: 20px 16px 20px;
+        border-radius: 22px;
+    }
+
+    .card-form-header {
+        flex-direction: column-reverse;
+        align-items: flex-start;
+    }
+
+    .hero-card {
+        border-radius: 22px;
+    }
+}
+/* Chips for seat class */
+.chip {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+
+.chip--business {
+    background: rgba(0, 218, 154, 0.18);
+    border-color: rgba(0, 218, 154, 0.9);
+    color: #c9ffea;
+}
+
+.chip--economy {
+    background: rgba(111, 215, 255, 0.16);
+    border-color: rgba(111, 215, 255, 0.9);
+    color: #e0f4ff;
+}
+
+/* Multiselect for crew */
+.form-multiselect.dark-multiselect {
+    width: 100%;
+    border-radius: 18px;
+    border: 1px solid rgba(119, 152, 252, 0.8);
+    background: #050b20;
+    color: #f4f7ff;
+    padding: 6px 10px;
+}
+.page-main--scroll {
+  max-height: 100vh;
+  overflow-y: auto;
+  padding-bottom: 2rem;
+}
+
+.table-wrapper--scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.dashboard-scroll {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.page-card--form,
+.page-card--dashboard {
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  border-radius: 1.5rem;
+}
+
+.seat-layout-row {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: rgba(0,0,0,0.02);
+}
+
+/* טופס צוות – אנכי וצר */
+.page-card--narrow {
+  max-width: 640px;
+}
+
+.form-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.form-vertical .form-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.form-vertical .form-label {
+  min-width: 160px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.form-vertical .form-field {
+  flex: 1;
+}
+
+.form-vertical input[type="text"],
+.form-vertical input[type="number"] {
+  width: 100%;
+  max-width: 260px;
+}
+
+/* רדיובטנים יפים */
+.form-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* כפתורי פעולה בשורה האחרונה */
+.form-row--actions {
+  margin-top: 1.2rem;
+}
+
+/* טבלאות צוות – קווים כמו צי מטוסים */
+.table-card {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 14px;
+  padding: 0.75rem 0.75rem 0.5rem;
+}
+
+.table--grid {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table--grid th,
+.table--grid td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  font-size: 0.86rem;
+}
+
+.table--grid thead tr {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+  /* עטיפה כמו אצל המנהל */
+  .datetime-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  /* שדה התאריך – מלבן קצת יותר בהיר ובולט */
+  .datetime-wrapper input[type="date"] {
+    width: 100%;
+    color-scheme: dark;
+    background-color: #111f4a;
+    background-image: linear-gradient(145deg, #24376b, #0b1636);
+    border-color: rgba(170, 205, 255, 0.95);
+  }
+
+  /* אייקון לוח שנה – לבן */
+  .datetime-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(1) brightness(1.4) contrast(1.1) !important;
+    -webkit-filter: invert(1) brightness(1.4) contrast(1.1) !important;
+    opacity: 1;
+
+

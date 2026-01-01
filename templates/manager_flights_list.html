@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}Flights management{% endblock %}
+
+{% block content %}
+
+<div class="page-main">
+  <div class="page-card page-card--wide">
+
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-title">Flights management</h1>
+        <p class="subtitle">
+          View all flights, edit details, assign crew and manage seat prices.<br>
+          Arrival time is calculated automatically from the departure time
+          and the route duration.<br>
+          <strong>
+            Status <code>Full-Occupied</code> is updated automatically when all seats
+            are either <code>Sold</code> or <code>Blocked</code>.
+          </strong>
+        </p>
+      </div>
+      <div class="page-header-actions">
+        <a href="{{ url_for('main.manager_new_flight') }}" class="btn-primary">
+          + Create new flight
+        </a>
+      </div>
+    </div>
+
+    <div class="manager-greeting-banner">
+      <div class="manager-greeting-text">
+        <span class="manager-greeting-title">
+          Hello, {{ session.get('manager_name', 'Manager') }}!
+        </span>
+        <span class="manager-greeting-sub">
+          Keep the schedule smooth and the sky clear – your control tower is ready.
+        </span>
+      </div>
+      <div class="manager-greeting-logo">
+        <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+             alt="FLYTAU logo">
+      </div>
+    </div>
+
+    <form method="get"
+          action="{{ url_for('main.manager_flights') }}"
+          class="toolbar toolbar--filters">
+      <div class="toolbar-group">
+        <label for="flight_id">Flight ID</label>
+        <input type="text"
+               id="flight_id"
+               name="flight_id"
+               value="{{ flight_id_filter or '' }}"
+               placeholder="e.g. F020">
+      </div>
+
+      <div class="toolbar-group">
+        <label for="origin">Origin</label>
+        <input type="text"
+               id="origin"
+               name="origin"
+               value="{{ origin_filter or '' }}"
+               placeholder="e.g. TLV">
+      </div>
+
+      <div class="toolbar-group">
+        <label for="destination">Destination</label>
+        <input type="text"
+               id="destination"
+               name="dest"
+               value="{{ dest_filter or '' }}"
+               placeholder="e.g. JFK">
+      </div>
+
+      <div class="toolbar-group">
+        <label for="profile">Profile</label>
+        <select id="profile" name="profile">
+          <option value="all"
+                  {% if profile_filter == 'all' or not profile_filter %}selected{% endif %}>
+            All
+          </option>
+          <option value="short"
+                  {% if profile_filter == 'short' %}selected{% endif %}>
+            Short-haul
+          </option>
+          <option value="long"
+                  {% if profile_filter == 'long' %}selected{% endif %}>
+            Long-haul
+          </option>
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="all"
+                  {% if status_filter == 'all' or not status_filter %}selected{% endif %}>
+            All
+          </option>
+          <option value="Active"
+                  {% if status_filter == 'Active' %}selected{% endif %}>
+            Active
+          </option>
+          <option value="Completed"
+                  {% if status_filter == 'Completed' %}selected{% endif %}>
+            Completed
+          </option>
+          <option value="Cancelled"
+                  {% if status_filter == 'Cancelled' %}selected{% endif %}>
+            Cancelled
+          </option>
+          <option value="Full-Occupied"
+                  {% if status_filter == 'Full-Occupied' %}selected{% endif %}>
+            Full-Occupied
+          </option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-secondary toolbar-apply">
+        Apply filters
+      </button>
+    </form>
+
+    {% if flights and flights|length > 0 %}
+
+      <div class="table-shell">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Route</th>
+              <th>Departure</th>
+              <th>Arrival</th>
+              <th>Aircraft</th>
+              <th>Profile</th>
+              <th>Status</th>
+              <th style="text-align:center;">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for f in flights %}
+              <tr>
+                <td><strong>{{ f.Flight_id }}</strong></td>
+                <td>
+                  {{ f.Origin_Airport_code }} ({{ f.Origin_City }})
+                  &rarr;
+                  {{ f.Destination_Airport_code }} ({{ f.Destination_City }})
+                </td>
+                <td>{{ f.Dep_str }}</td>
+                <td>{{ f.Arr_str }}</td>
+                <td>
+                  [{{ f.Aircraft_id }}]
+                  {{ f.AircraftModel }} ({{ f.AircraftSize }})
+                </td>
+                <td>
+                  {% if f.Profile == 'Long-haul' %}
+                    <span class="badge badge--long">Long-haul</span>
+                  {% else %}
+                    <span class="badge badge--short">Short-haul</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if f.Status == 'Active' %}
+                    <span class="badge badge--active">Active</span>
+                  {% elif f.Status == 'Completed' %}
+                    <span class="badge badge--completed">Completed</span>
+                  {% elif f.Status == 'Cancelled' %}
+                    <span class="badge badge--cancelled">Cancelled</span>
+                  {% elif f.Status == 'Full-Occupied' %}
+                    <span class="badge badge--full">Full-Occupied</span>
+                  {% else %}
+                    {{ f.Status }}
+                  {% endif %}
+                </td>
+                <td style="text-align:center;">
+                  <div class="table-actions">
+                    {% if f.can_edit %}
+                      <a href="{{ url_for('main.manager_edit_flight', flight_id=f.Flight_id) }}"
+                         class="btn-small">
+                        Edit/Cancel
+                      </a>
+                    {% else %}
+                      <a href="{{ url_for('main.manager_view_flight', flight_id=f.Flight_id) }}"
+                         class="btn-small">
+                        View history
+                      </a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    {% else %}
+
+      <div class="empty-state">
+        <h3>No flights match these filters.</h3>
+        <p class="field-hint">
+          Try changing the filters above or create a new flight.
+        </p>
+        <a href="{{ url_for('main.manager_new_flight') }}" class="btn-primary">
+          Create new flight
+        </a>
+      </div>
+
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

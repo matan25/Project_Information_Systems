@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Manager dashboard{% endblock %}
+
+{% block content %}
+<div class="page-main">
+  <div class="page-card page-card--dashboard">
+
+    <div class="page-header-row">
+      <div class="page-header-left">
+        <h1 class="page-title">Manager dashboard</h1>
+        <p class="subtitle">
+          Welcome, <strong>{{ manager_name }}</strong>!<br>
+          Use this control center to manage flights, aircrafts, crew,
+          orders and reports.
+        </p>
+      </div>
+      <div class="page-header-actions">
+        <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+          Refresh
+        </a>
+      </div>
+    </div>
+
+    <div class="logo-strip">
+      <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+           alt="FLYTAU logo"
+           class="page-logo">
+    </div>
+
+    <div class="tiles-grid tiles-grid--dashboard">
+        <div class="tile tile--gradient">
+            <h2>Flights</h2>
+            <p>View, create and update scheduled flights, assign aircrafts and monitor status.</p>
+            <a href="{{ url_for('main.manager_flights') }}" class="btn-small">Open flights</a>
+        </div>
+
+        <div class="tile tile--gradient">
+            <h2>Crew members</h2>
+            <p>Maintain the list of pilots and flight attendants, including long-haul certification.</p>
+            <a href="{{ url_for('main.manager_crew_list') }}" class="btn-small">Open crew list</a>
+        </div>
+
+        <div class="tile tile--gradient">
+            <h2>Aircraft fleet</h2>
+            <p>Browse the entire aircraft fleet, add new aircraft and configure their seat layouts.</p>
+            <a href="{{ url_for('main.manager_aircrafts') }}" class="btn-small">Open fleet</a>
+        </div>
+
+        <div class="tile tile--gradient">
+            <h2>All orders</h2>
+            <p>Review every booking in the system, including cancellations and refunds.</p>
+            <a href="{{ url_for('main.manager_orders') }}" class="btn-small">View orders</a>
+        </div>
+
+        <div class="tile tile--gradient">
+            <h2>Reports</h2>
+            <p>Inspect occupancy, revenues, staff hours and aircraft utilization.</p>
+            <a href="{{ url_for('main.manager_reports_menu') }}" class="btn-small">Open reports</a>
+        </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

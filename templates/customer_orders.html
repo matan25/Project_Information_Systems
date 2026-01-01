@@ -1,0 +1,291 @@
+{# templates/customer_orders.html #}
+{% extends "base.html" %}
+{% block title %}My Orders{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Modal backdrop */
+  .cancel-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .cancel-modal-backdrop.is-visible {
+    display: flex;
+  }
+
+  .cancel-modal-dialog {
+    max-width: 420px;
+    width: 100%;
+    background: #0b1022;
+    border-radius: 16px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+    padding: 20px 22px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #f9fafb;
+  }
+
+  .cancel-modal-title {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .cancel-modal-body {
+    font-size: 14px;
+    color: #cbd5f5;
+    margin-bottom: 18px;
+  }
+
+  .cancel-modal-body strong {
+    color: #ffffff;
+  }
+
+  .cancel-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn-ghost-light {
+    border-radius: 999px;
+    padding: 6px 16px;
+    border: 1px solid rgba(148, 163, 255, 0.6);
+    background: transparent;
+    color: #e5e7ff;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .btn-ghost-light:hover {
+    background: rgba(129, 140, 248, 0.15);
+  }
+
+  .btn-danger-primary {
+    border-radius: 999px;
+    padding: 6px 16px;
+    border: none;
+    background: #b91c1c;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .btn-danger-primary:hover {
+    background: #dc2626;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const backdrop = document.getElementById("cancel-modal");
+    const orderSpan = document.getElementById("cancel-modal-order-code");
+    const keepBtn = document.getElementById("cancel-modal-keep");
+    const confirmBtn = document.getElementById("cancel-modal-confirm");
+
+    let pendingForm = null;
+
+    // לפתוח מודאל כשמקליקים על "Cancel"
+    document.querySelectorAll(".js-open-cancel-modal").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        pendingForm = this.closest("form");
+        const orderCode = this.getAttribute("data-order-code") || "";
+        if (orderSpan) {
+          orderSpan.textContent = orderCode;
+        }
+        backdrop.classList.add("is-visible");
+      });
+    });
+
+    // להישאר עם ההזמנה (סגירת מודאל)
+    keepBtn.addEventListener("click", function () {
+      backdrop.classList.remove("is-visible");
+      pendingForm = null;
+    });
+
+    // אישור ביטול – Submit לטופס המקורי
+    confirmBtn.addEventListener("click", function () {
+      if (pendingForm) {
+        pendingForm.submit();
+      }
+    });
+
+    // סגירה בלחיצה מחוץ לדיאלוג
+    backdrop.addEventListener("click", function (e) {
+      if (e.target === backdrop) {
+        backdrop.classList.remove("is-visible");
+        pendingForm = null;
+      }
+    });
+  });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="page-main">
+  <div class="page-card">
+    <h1 class="page-title">My Orders</h1>
+     <div class="page-header-left">
+        <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+             alt="FLYTAU logo"
+             class="flytau-logo">
+      </div>
+    <p class="subtitle">
+      View your booking history, filter by status and cancel eligible orders.
+    </p>
+
+    {# הערת מדיניות ביטול – אדום #}
+    <p style="color:#e74c3c; font-size: 13px; margin-top: 4px;">
+      Important: Orders can be cancelled at most <strong>36 hours before departure</strong>.
+      After this time the order becomes <strong>Completed</strong> and can no longer be cancelled.
+    </p>
+
+    <form method="get"
+          action="{{ url_for('main.customer_orders') }}"
+          class="form-row"
+          style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end;">
+      <div>
+        <label for="status">Filter by status</label>
+        <select id="status" name="status">
+          <option value="all"
+                  {% if status_filter == 'all' or not status_filter %}selected{% endif %}>
+            All
+          </option>
+          <option value="Active"
+                  {% if status_filter == 'Active' %}selected{% endif %}>
+            Active
+          </option>
+          <option value="Completed"
+                  {% if status_filter == 'Completed' %}selected{% endif %}>
+            Completed
+          </option>
+          <option value="Cancelled-Customer"
+                  {% if status_filter == 'Cancelled-Customer' %}selected{% endif %}>
+            Cancelled by customer
+          </option>
+          <option value="Cancelled-System"
+                  {% if status_filter == 'Cancelled-System' %}selected{% endif %}>
+            Cancelled by system
+          </option>
+        </select>
+      </div>
+      <button type="submit" class="btn-secondary">
+        Apply
+      </button>
+    </form>
+
+    {% if orders %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Order #</th>
+            <th>Date</th>
+            <th>Flight</th>
+            <th>Route</th>
+            <th>Tickets</th>
+            <th>Total Price</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for o in orders %}
+          <tr>
+            <td>{{ o.Order_code }}</td>
+            <td>{{ o.Date_str }}</td>
+            <td>
+              <strong>{{ o.Flight_id }}</strong><br>
+              <span style="font-size: 11px;">{{ o.Dep_str }}</span>
+            </td>
+            <td>{{ o.Origin_Airport_code }} &rarr; {{ o.Destination_Airport_code }}</td>
+            <td>{{ o.Ticket_Count }}</td>
+            <td>${{ "%.2f"|format(o.Total_Price) }}</td>
+            <td>
+              {% if o.Order_Status == 'Active' %}
+                <span style="color: #0070f3; font-weight: 600;">Active</span>
+              {% elif o.Order_Status == 'Completed' %}
+                <span style="color: green; font-weight: 600;">Completed</span>
+              {% elif o.Order_Status == 'Cancelled-Customer' %}
+                <span style="color: #b30000; font-weight: 600;">Cancelled by customer</span>
+              {% elif o.Order_Status == 'Cancelled-System' %}
+                <span style="color: #b36b00; font-weight: 600;">Cancelled by system</span>
+              {% else %}
+                {{ o.Order_Status }}
+              {% endif %}
+            </td>
+            <td>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <a href="{{ url_for('main.booking_confirmation', order_code=o.Order_code) }}"
+                   class="btn-small">
+                  Details
+                </a>
+
+                {% if o.can_cancel %}
+                  <form method="post"
+                        action="{{ url_for('main.cancel_order', order_code=o.Order_code) }}"
+                        style="display: inline;">
+                    <button type="button"
+                            class="btn-small js-open-cancel-modal"
+                            data-order-code="{{ o.Order_code }}">
+                      Cancel
+                    </button>
+                  </form>
+                {% else %}
+                  <span style="font-size: 11px; color: #888;">
+                    No actions available
+                  </span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div style="padding: 30px; text-align: center;">
+        <h3>No orders found for this filter.</h3>
+        <p class="field-hint">
+          Try changing the status filter above.
+        </p>
+      </div>
+    {% endif %}
+
+    {# כפתור חזרה לאזור האישי #}
+    <div style="margin-top: 24px; text-align: right;">
+      <a href="{{ url_for('main.customer_home') }}" class="btn-secondary">
+        Back to my area
+      </a>
+    </div>
+
+  </div>
+</div>
+
+{# מודאל ביטול הזמנה (לקוח רשום) #}
+<div id="cancel-modal" class="cancel-modal-backdrop">
+  <div class="cancel-modal-dialog">
+    <h2 class="cancel-modal-title">Cancel this order?</h2>
+    <div class="cancel-modal-body">
+      You are about to cancel order
+      <strong><span id="cancel-modal-order-code"></span></strong>.<br>
+      A <strong>5% cancellation fee</strong> will be applied and the remaining
+      amount will be refunded according to the policy.<br>
+      Cancellation is only possible up to 36 hours before departure.
+    </div>
+    <div class="cancel-modal-actions">
+      <button type="button" id="cancel-modal-keep" class="btn-ghost-light">
+        Keep my booking
+      </button>
+      <button type="button" id="cancel-modal-confirm" class="btn-danger-primary">
+        Confirm cancellation
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}FlyTAU • MANAGER{% endblock %}</title>
+
+  <!-- אותו CSS כמו בכל האתר (זה שמסגנן את רשימת הטיסות) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <!-- Top bar -->
+  <header class="top-bar">
+    <div class="top-bar-inner">
+
+      <!-- לוגו + לינק לדף הבית של המנהל -->
+      <a href="{{ url_for('main.manager_home') }}" class="brand-link">
+        <div class="brand-logo-circle">
+          <img src="{{ url_for('static', filename='images/flytau_logo_small.png') }}"
+               alt="FlyTAU logo">
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">FLYTAU</span>
+          <span class="brand-subtitle">Manager console</span>
+        </div>
+      </a>
+
+      {% set lock = lock_manager_nav|default(False) %}
+      <nav class="top-nav">
+        <a class="top-nav-link {% if lock %}nav-disabled{% endif %}"
+           {% if not lock %}href="{{ url_for('main.manager_home') }}"{% endif %}>
+          Home
+        </a>
+        <a class="top-nav-link {% if lock %}nav-disabled{% endif %}"
+           {% if not lock %}href="{{ url_for('main.manager_flights') }}"{% endif %}>
+          Flights
+        </a>
+        <a class="top-nav-link {% if lock %}nav-disabled{% endif %}"
+           {% if not lock %}href="{{ url_for('main.manager_orders_menu') }}"{% endif %}>
+          Orders
+        </a>
+        <a class="top-nav-link {% if lock %}nav-disabled{% endif %}"
+           {% if not lock %}href="{{ url_for('main.manager_reports_menu') }}"{% endif %}>
+          Reports
+        </a>
+        <a class="top-nav-link {% if lock %}nav-disabled{% endif %}"
+           {% if not lock %}href="{{ url_for('auth.logout') }}"{% endif %}>
+          Logout
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  {% if lock_manager_nav %}
+  <div class="workflow-banner">
+    <span class="workflow-title">Flight workflow in progress</span>
+    <span class="workflow-sub">
+      Finish or cancel the current flight creation/editing flow
+      before navigating to another manager page.
+    </span>
+  </div>
+  {% endif %}
+
+  <main class="page-main">
+    <div class="flash-container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="page-footer">
+    FlyTAU Manager • Academic project
+  </footer>
+
+  {% if lock_manager_nav %}
+  <script>
+    // חוסם ניווט כשיש workflow פתוח (אלא אם data-allow-nav="true")
+    document.addEventListener('click', function (e) {
+      const link = e.target.closest('a');
+      if (!link) return;
+      if (link.dataset.allowNav === 'true') return;
+      if (link.classList.contains('nav-disabled')) {
+        e.preventDefault();
+      }
+    });
+  </script>
+  {% endif %}
+</body>
+</html>

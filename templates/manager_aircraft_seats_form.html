@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Configure seats{% endblock %}
+
+{% block content %}
+<div class="page-main">
+  <div class="page-card page-card--form">
+
+    <div class="page-header-row">
+      <div class="page-header-left">
+        <h1 class="page-title">Seat layout for {{ aircraft.Aircraft_id }}</h1>
+        <p class="subtitle">
+          Manufacturer: <strong>{{ aircraft.Manufacturer }}</strong><br>
+          Model: <strong>{{ aircraft.Model }}</strong><br>
+          Size: <strong>{{ aircraft.Size }}</strong><br>
+          Define how many rows and seats per row you want in each cabin class.
+        </p>
+      </div>
+      {# בזמן הגדרת כיסאות אין כפתור Back לדשבורד/צי מטוסים #}
+    </div>
+
+    <div class="logo-strip">
+      <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+           alt="FLYTAU logo"
+           class="page-logo">
+    </div>
+
+    <form method="post" class="form-grid seat-layout-form">
+
+      {# Large aircraft – Business + Economy #}
+      {% if size == "Large" %}
+      <!-- Business class row -->
+      <div class="seat-layout-row">
+        <div class="seat-layout-category">
+          <h2>Business class</h2>
+          <p>Premium cabin at the front of the aircraft.</p>
+        </div>
+        <div class="seat-layout-fields">
+          <div class="form-row">
+            <label for="biz_rows">Rows (Business)</label>
+            <input type="number"
+                   id="biz_rows"
+                   name="biz_rows"
+                   min="1"
+                   required>
+          </div>
+          <div class="form-row">
+            <label for="biz_cols">Seats per row (Business)</label>
+            <input type="number"
+                   id="biz_cols"
+                   name="biz_cols"
+                   min="1"
+                   required>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Economy class row -->
+      <div class="seat-layout-row">
+        <div class="seat-layout-category">
+          <h2>Economy class</h2>
+          <p>Main cabin for all passengers.</p>
+        </div>
+        <div class="seat-layout-fields">
+          <div class="form-row">
+            <label for="eco_rows">Rows (Economy)</label>
+            <input type="number"
+                   id="eco_rows"
+                   name="eco_rows"
+                   min="1"
+                   required>
+          </div>
+          <div class="form-row">
+            <label for="eco_cols">Seats per row (Economy)</label>
+            <input type="number"
+                   id="eco_cols"
+                   name="eco_cols"
+                   min="1"
+                   required>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">
+        Rows are numbered consecutively starting from 1.
+        For large aircrafts, all Business rows come first,
+        followed by Economy rows.
+      </p>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">
+          Generate seats and finish
+        </button>
+
+        <!-- חזרה צעד אחד אחורה להגדרת פרטי המטוס בלבד -->
+        <button type="button"
+                class="btn-secondary"
+                onclick="window.history.back();">
+          Back to previous step
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

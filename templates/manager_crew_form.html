@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}New crew member{% endblock %}
+
+{% block content %}
+<div class="page-card page-card--narrow">
+  <div class="page-header-row">
+    <div class="page-header-left">
+      <h1 class="page-title">Add new crew member</h1>
+      <p class="subtitle">
+        Create a new pilot or flight attendant, including contact details
+        and long-haul certification.
+      </p>
+    </div>
+    <div class="page-header-actions">
+      <a href="{{ url_for('main.manager_crew_list') }}" class="btn-small">
+        Back to crew list
+      </a>
+    </div>
+  </div>
+
+  <form method="post" class="form-vertical">
+
+    <!-- Crew type -->
+    <div class="form-row">
+      <label class="form-label">Crew type</label>
+      <div class="form-field">
+        <label class="form-radio">
+          <input type="radio" name="role" value="pilot"
+                 {% if form.role == 'pilot' %}checked{% endif %}>
+          <span>Pilot</span>
+        </label>
+        <label class="form-radio" style="margin-left: 1.5rem;">
+          <input type="radio" name="role" value="attendant"
+                 {% if form.role == 'attendant' %}checked{% endif %}>
+          <span>Flight attendant</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ID number -->
+    <div class="form-row">
+      <label for="id_number" class="form-label">ID number</label>
+      <div class="form-field">
+        <input type="text"
+               id="id_number"
+               name="id_number"
+               maxlength="9"
+               value="{{ form.id_number }}"
+               required>
+      </div>
+    </div>
+
+    <!-- Phone -->
+    <div class="form-row">
+      <label for="phone" class="form-label">Phone</label>
+      <div class="form-field">
+        <input type="text"
+               id="phone"
+               name="phone"
+               value="{{ form.phone }}"
+               required>
+      </div>
+    </div>
+
+    <!-- First name -->
+    <div class="form-row">
+      <label for="first_name" class="form-label">First name (Hebrew)</label>
+      <div class="form-field">
+        <input type="text"
+               id="first_name"
+               name="first_name"
+               value="{{ form.first_name }}"
+               required>
+      </div>
+    </div>
+
+    <!-- Last name -->
+    <div class="form-row">
+      <label for="last_name" class="form-label">Last name (Hebrew)</label>
+      <div class="form-field">
+        <input type="text"
+               id="last_name"
+               name="last_name"
+               value="{{ form.last_name }}"
+               required>
+      </div>
+    </div>
+
+    <!-- City -->
+    <div class="form-row">
+      <label for="city" class="form-label">City</label>
+      <div class="form-field">
+        <input type="text"
+               id="city"
+               name="city"
+               value="{{ form.city }}"
+               required>
+      </div>
+    </div>
+
+    <!-- Street -->
+    <div class="form-row">
+      <label for="street" class="form-label">Street</label>
+      <div class="form-field">
+        <input type="text"
+               id="street"
+               name="street"
+               value="{{ form.street }}"
+               required>
+      </div>
+    </div>
+
+    <!-- House number -->
+    <div class="form-row">
+      <label for="house_number" class="form-label">House number</label>
+      <div class="form-field">
+        <input type="number"
+               id="house_number"
+               name="house_number"
+               min="1"
+               value="{{ form.house_number }}"
+               required>
+      </div>
+    </div>
+
+    <!-- Long-haul certified -->
+    <div class="form-row">
+      <label class="form-label">Long-haul certified</label>
+      <div class="form-field">
+        <label class="form-radio">
+          <input type="radio" name="long_haul" value="yes"
+                 {% if form.long_haul == 'yes' %}checked{% endif %}>
+          <span>Yes</span>
+        </label>
+        <label class="form-radio" style="margin-left: 1.5rem;">
+          <input type="radio" name="long_haul" value="no"
+                 {% if form.long_haul == 'no' %}checked{% endif %}>
+          <span>No</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="form-row form-row--actions">
+      <div class="form-label"></div>
+      <div class="form-field">
+        <button type="submit" class="btn-primary">
+          Save crew member
+        </button>
+        <a href="{{ url_for('main.manager_crew_list') }}" class="btn-secondary">
+          Cancel
+        </a>
+      </div>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Aircraft fleet{% endblock %}
+
+{% block content %}
+<div class="page-main">
+  <div class="page-card">
+
+    <div class="page-header-row">
+      <div class="page-header-left">
+        <h1 class="page-title">Aircraft fleet</h1>
+        <p class="subtitle">
+          Review the entire fleet, create new aircraft and keep seat layouts consistent.
+        </p>
+      </div>
+      <div class="page-header-actions">
+        <a href="{{ url_for('main.manager_new_aircraft') }}" class="btn-primary">
+          Create new aircraft
+        </a>
+        <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+          Back to dashboard
+        </a>
+      </div>
+    </div>
+
+    <div class="logo-strip">
+      <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+           alt="FLYTAU logo"
+           class="page-logo">
+    </div>
+
+    {% if aircrafts %}
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Aircraft ID</th>
+              <th>Manufacturer</th>
+              <th>Model</th>
+              <th>Size</th>
+              <th>Purchase date</th>
+              <th>Seats</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ac in aircrafts %}
+            <tr>
+              <td>{{ ac.Aircraft_id }}</td>
+              <td>{{ ac.Manufacturer }}</td>
+              <td>{{ ac.Model }}</td>
+              <td>{{ ac.Size }}</td>
+              <td>{{ ac.Purchase_Date.strftime('%Y-%m-%d') if ac.Purchase_Date else '-' }}</td>
+              <td>{{ ac.SeatCount }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty-state">
+        No aircraft have been defined yet. Click
+        <strong>"Create new aircraft"</strong> to add the first one.
+      </p>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

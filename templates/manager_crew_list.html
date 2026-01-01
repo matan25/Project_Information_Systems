@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Crew members{% endblock %}
+
+{% block content %}
+<div class="page-card">
+  <div class="page-header-row">
+    <div class="page-header-left">
+      <h1 class="page-title">Crew members</h1>
+      <p class="subtitle">
+        View all pilots and flight attendants in the system,
+        including their long-haul qualifications.
+      </p>
+    </div>
+    <div class="page-header-actions">
+      <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+        Back to dashboard
+      </a>
+      <a href="{{ url_for('main.manager_new_crew') }}" class="btn-primary">
+        Add new crew member
+      </a>
+    </div>
+  </div>
+
+  <!-- Pilots -->
+  <section class="section-block">
+    <h2 class="section-title">Pilots</h2>
+    {% if pilots %}
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="table table--grid">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Full name</th>
+                <th>Address</th>
+                <th>Phone</th>
+                <th>Start working</th>
+                <th>Total flight hours</th>
+                <th>Long-haul certified</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for p in pilots %}
+              <tr>
+                <td>{{ p.Id }}</td>
+                <td>{{ p.FirstName }} {{ p.LastName }}</td>
+                <td>{{ p.City }}, {{ p.Street }} {{ p.House_Number }}</td>
+                <td>{{ p.Phone_Number }}</td>
+                <td>{{ p.Start_Working_Date.strftime("%Y-%m-%d") if p.Start_Working_Date }}</td>
+                <td>{{ p.Total_Flight_Hours }}</td>
+                <td>
+                  {% if p.Long_Haul_Certified %}
+                    Yes
+                  {% else %}
+                    No
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-state">No pilots found.</p>
+    {% endif %}
+  </section>
+
+  <!-- Flight attendants -->
+  <section class="section-block" style="margin-top: 2rem;">
+    <h2 class="section-title">Flight attendants</h2>
+    {% if attendants %}
+      <div class="table-card">
+        <div class="table-wrapper">
+          <table class="table table--grid">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Full name</th>
+                <th>Address</th>
+                <th>Phone</th>
+                <th>Start working</th>
+                <th>Total flight hours</th>
+                <th>Long-haul certified</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for a in attendants %}
+              <tr>
+                <td>{{ a.Id }}</td>
+                <td>{{ a.FirstName }} {{ a.LastName }}</td>
+                <td>{{ a.City }}, {{ a.Street }} {{ a.House_Number }}</td>
+                <td>{{ a.Phone_Number }}</td>
+                <td>{{ a.Start_Working_Date.strftime("%Y-%m-%d") if a.Start_Working_Date }}</td>
+                <td>{{ a.Total_Flight_Hours }}</td>
+                <td>
+                  {% if a.Long_Haul_Certified %}
+                    Yes
+                  {% else %}
+                    No
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-state">No flight attendants found.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

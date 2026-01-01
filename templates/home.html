@@ -1,0 +1,233 @@
+{# templates/home.html #}
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  /* Overall centering of the welcome card */
+  .home-shell {
+      min-height: calc(100vh - 120px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+  }
+
+  /* Main card – בלי תמונת רקע, רק קופסה כהה ומסודרת */
+  .home-card {
+      max-width: 1150px;
+      width: 100%;
+      background: linear-gradient(135deg, #0d1634, #050816);
+      border-radius: 24px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.75);
+      padding: 22px 30px 26px;
+      color: #f5f7ff;
+      border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* Header row with logo + title (no circle around logo) */
+  .home-header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 14px;
+  }
+
+  .home-logo-box {
+      width: 70px;
+      height: 70px;
+      border-radius: 16px;
+      background: #0b1f4a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .home-logo-box img {
+      max-width: 80%;
+      max-height: 80%;
+  }
+
+  .home-title-group h1 {
+      font-size: 1.7rem;  /* קצת יותר קטן ונעים */
+      margin: 0;
+  }
+
+  .home-title-group p {
+      margin: 3px 0 0;
+      font-size: 0.95rem;
+      opacity: 0.8;
+  }
+
+  /* Thin separator under header */
+  .home-divider {
+      height: 1px;
+      width: 100%;
+      background: linear-gradient(
+          to right,
+          rgba(159,198,255,0.0),
+          rgba(159,198,255,0.35),
+          rgba(159,198,255,0.0)
+      );
+      margin: 6px 0 14px;
+  }
+
+  /* Columns area */
+  .home-columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+  }
+
+  .home-column {
+      background: rgba(5, 11, 48, 0.96);
+      border-radius: 18px;
+      padding: 16px 18px 18px;
+      box-shadow:
+          0 12px 30px rgba(0,0,0,0.6),
+          inset 0 0 0 1px rgba(255,255,255,0.02);
+  }
+
+  .home-column h2 {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+  }
+
+  .home-column p {
+      margin: 0 0 12px;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      opacity: 0.92;
+  }
+
+  .home-manager-btn {
+      width: 100%;
+      text-align: center;
+      margin-top: 6px;
+  }
+
+  .home-column-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+  }
+
+  .home-link-main {
+      width: 100%;
+      text-align: center;
+      font-size: 0.9rem;
+  }
+
+  .home-link {
+      font-size: 0.9rem;
+      color: #9fc6ff;
+      text-decoration: none;
+  }
+
+  .home-link:hover {
+      text-decoration: underline;
+  }
+
+  /* אזור התמונה שמתחת לכרטיסיה */
+  .home-image-wrapper {
+      max-width: 1150px;
+      width: 100%;
+      margin-top: 18px;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.7);
+      border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .home-image-wrapper img {
+      display: block;
+      width: 100%;
+      height: auto;
+  }
+
+  @media (max-width: 768px) {
+      .home-card {
+          padding: 20px 16px 22px;
+      }
+
+      .home-header {
+          align-items: flex-start;
+      }
+
+      .home-title-group h1 {
+          font-size: 1.5rem;
+      }
+
+      .home-image-wrapper {
+          margin-top: 14px;
+      }
+  }
+</style>
+
+<div class="home-shell">
+  <div>
+    <div class="home-card">
+      <div class="home-header">
+        <div class="home-logo-box">
+          <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+               alt="FLYTAU logo">
+        </div>
+        <div class="home-title-group">
+          <h1>Welcome to FLYTAU</h1>
+          <p>
+            Internal flight management system for routes, aircrafts, crew and tickets.
+          </p>
+        </div>
+      </div>
+
+      <div class="home-divider"></div>
+
+      <div class="home-columns">
+        <div class="home-column">
+          <h2>For managers</h2>
+          <p>
+            Monitor the entire operation: manage flights, assign aircrafts,
+            schedule crew and control seat pricing &amp; revenues – all in one place.
+          </p>
+          <a href="{{ url_for('auth.login', role='manager') }}"
+             class="btn-primary home-manager-btn">
+            Manager sign in
+          </a>
+        </div>
+
+        <div class="home-column">
+          <h2>For customers</h2>
+          <p>
+            Search flights, purchase tickets and view your reservations –
+            either as a registered customer or as a guest.
+          </p>
+          <div class="home-column-actions">
+            <a href="{{ url_for('auth.login', role='customer') }}"
+               class="btn-secondary home-link-main">
+              Customer sign in
+            </a>
+            <a href="{{ url_for('main.search_flights') }}" class="home-link">
+              Book a flight as guest
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="home-link">
+              Create customer account
+            </a>
+            {# הקישור לפי דרכון + תאריך לידה נשאר מוסר #}
+            <a href="{{ url_for('main.guest_order_lookup') }}" class="home-link">
+              Guest order lookup (email &amp; order ID)
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- התמונה "Welcome aboard" מתחת לכרטיסיה -->
+    <div class="home-image-wrapper">
+      <img src="{{ url_for('static', filename='img/welcomeaboard.png') }}"
+           alt="Welcome aboard">
+    </div>
+  </div>
+</div>
+{% endblock %}

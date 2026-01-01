@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Customer area{% endblock %}
+
+{% block content %}
+<div class="page-main">
+  <div class="page-card">
+    <div class="page-header-row">
+      <div class="page-header-left">
+        <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+             alt="FLYTAU logo"
+             class="flytau-logo">
+      </div>
+      <div class="page-header-right">
+        <h1 class="page-title">Customer area</h1>
+        <p class="subtitle">
+          Search flights, book tickets and view your previous orders.
+        </p>
+        {% if session.get('role') == 'customer' and session.get('customer_name') %}
+          <p class="login-indicator">
+            Welcome back, <strong>{{ session['customer_name'] }}</strong>!
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="tiles-grid">
+      <a class="tile" href="{{ url_for('main.search_flights') }}">
+        <h2>Search flights</h2>
+        <p>Find active flights by origin, destination and date, and select seats.</p>
+      </a>
+
+      {# אין יותר צורך במסך דרכון+תאריך לידה – מעבר ישר להיסטוריית הזמנות #}
+      <a class="tile" href="{{ url_for('main.customer_orders') }}">
+        <h2>My orders (registered)</h2>
+        <p>
+          Registered customers: view your full order history and cancel orders.
+        </p>
+      </a>
+    </div>
+
+    {# תמונת ברוכים הבאים ללקוח בתחתית הדף #}
+    <div style="margin-top: 2rem; text-align: center;">
+      <img src="{{ url_for('static', filename='img/client-welcome.png') }}"
+           alt="Welcome to the customer area"
+           style="
+             max-width: 100%;
+             border-radius: 16px;
+             box-shadow: 0 14px 40px rgba(0,0,0,0.5);
+             border: 1px solid rgba(255,255,255,0.08);
+           ">
+    </div>
+
+  </div>
+</div>
+{% endblock %}

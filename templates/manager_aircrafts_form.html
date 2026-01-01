@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if mode == 'edit' %}Edit aircraft{% else %}Create aircraft{% endif %}
+{% endblock %}
+
+{% block content %}
+{# האם הניווט נעול ב-workflow? מגיע מה-view כ-lock_manager_nav=True/False #}
+{% set nav_locked = lock_manager_nav|default(false) %}
+{% set form_mode = mode|default('create') %}
+{% set readonly_manufacturer = readonly_manufacturer|default(false) %}
+{# אובייקט מטוס בטוח – אם aircraft לא מוגדר נקבל dict ריק #}
+{% set ac = aircraft|default({}) %}
+
+<div class="page-main">
+  <div class="page-card page-card--form">
+
+    <div class="page-header-row">
+      <div class="page-header-left">
+        {% if form_mode == 'edit' %}
+          <h1 class="page-title">Edit aircraft {{ ac.Aircraft_id }}</h1>
+          <p class="subtitle">
+            Update the aircraft details. <strong>Manufacturer cannot be changed.</strong><br>
+            If you change the size, the seat layout will be updated in the next step.
+          </p>
+        {% else %}
+          <h1 class="page-title">Create new aircraft</h1>
+          <p class="subtitle">
+            Define the basic details for a new aircraft.
+            In the next step you will configure the seat layout.
+          </p>
+        {% endif %}
+      </div>
+      {# בזמן workflow הניווט העליון נעול, ולכן כאן לא מציגים קישורים לדשבורד/צי #}
+    </div>
+
+    <div class="logo-strip">
+      <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+           alt="FLYTAU logo"
+           class="page-logo">
+    </div>
+
+    <form method="post" class="form-grid">
+
+      <!-- Manufacturer -->
+      <div class="form-row">
+        <label for="manufacturer">Manufacturer</label>
+        <select name="manufacturer"
+                id="manufacturer"
+                required
+                {% if readonly_manufacturer %}disabled{% endif %}>
+          <option value="" disabled {% if not ac.Manufacturer|default('') %}selected{% endif %}>
+            Select manufacturer
+          </option>
+          {% for m in manufacturers %}
+            <option value="{{ m }}" {% if ac.Manufacturer|default('') == m %}selected{% endif %}>
+              {{ m }}
+            </option>
+          {% endfor %}
+        </select>
+
+        {% if readonly_manufacturer %}
+          <input type="hidden" name="manufacturer" value="{{ ac.Manufacturer|default('') }}">
+        {% endif %}
+      </div>
+
+      <!-- Model -->
+      <div class="form-row">
+        <label for="model">Model</label>
+        <input type="text"
+               id="model"
+               name="model"
+               value="{{ ac.Model|default('') }}"
+               required
+               maxlength="40"
+               placeholder="e.g. 787-9 Dreamliner">
+      </div>
+
+      <!-- Size -->
+      <div class="form-row">
+        <label for="size">Size</label>
+        <select name="size" id="size" required>
+          {% for s in sizes %}
+            <option value="{{ s }}" {% if ac.Size|default('') == s %}selected{% endif %}>
+              {{ s }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">
+          {% if form_mode == 'edit' %}
+            Save changes and continue to seat layout
+          {% else %}
+            Continue to seat layout
+          {% endif %}
+        </button>
+
+        {# כפתור Back מופיע רק כל עוד הניווט לא נעול (לפני שהתחלנו workflow מחייב) #}
+        {% if not nav_locked %}
+          <button type="button"
+                  id="aircraft-form-back-btn"
+                  class="btn-secondary">
+            Back to previous page
+          </button>
+        {% endif %}
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% if not nav_locked %}
+<script>
+  (function () {
+    const backBtn = document.getElementById('aircraft-form-back-btn');
+    if (!backBtn) return;
+
+    backBtn.addEventListener('click', function () {
+      window.history.back();
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}

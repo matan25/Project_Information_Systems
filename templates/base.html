@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        {% block title %}FLYTAU – Flight Management System{% endblock %}
+    </title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+      /* --- Global scrolling + page layout --- */
+
+      html {
+        height: auto;
+        min-height: 100%;
+        overflow-y: auto !important;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto !important;
+      }
+
+      /* Main content area – padding so the top bar does not cover titles */
+      main.page-main {
+        flex: 1 0 auto;
+        padding: 5.5rem 1.5rem 1.5rem;
+      }
+
+      .page-footer {
+        flex-shrink: 0;
+      }
+
+      /* Disabled navigation links when workflow is locked */
+      .top-nav-link--disabled,
+      .top-nav-pill--disabled,
+      .brand-link--disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      /* Generic content cards */
+      .page-card {
+        max-width: 1200px;
+        margin: 0 auto 2rem;
+      }
+
+      /* Scrollable tables (fleet, crew, etc.) */
+      .table-wrapper {
+        max-height: 480px;
+        overflow-y: auto;
+        margin-top: 1.5rem;
+      }
+
+      /* Two-column form rows for nicer layout */
+      .form-row--two-cols {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem 2rem;
+        align-items: flex-start;
+      }
+
+      .form-field-block {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .form-field-block label {
+        margin-bottom: 0.4rem;
+        font-weight: 500;
+      }
+
+      .form-field-block input,
+      .form-field-block select {
+        width: 100%;
+      }
+
+      /* White calendar icon for all date inputs (dark background) */
+      input[type="date"] {
+        color-scheme: dark;
+      }
+
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+      }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% set nav_locked = lock_manager_nav|default(false) %}
+
+<header class="top-bar">
+    <div class="top-bar-inner">
+        <div class="top-bar-left">
+            {% if nav_locked %}
+                <div class="brand-link brand-link--disabled">
+                    <div class="brand-logo-circle">
+                        <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+                             alt="FLYTAU logo"
+                             class="brand-logo-img">
+                    </div>
+                    <div class="brand-text">
+                        <span class="brand-title">FLYTAU</span>
+                        <span class="brand-subtitle">Flight Management Suite</span>
+                    </div>
+                </div>
+            {% else %}
+                <a href="{{ url_for('main.index') }}" class="brand-link">
+                    <div class="brand-logo-circle">
+                        <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+                             alt="FLYTAU logo"
+                             class="brand-logo-img">
+                    </div>
+                    <div class="brand-text">
+                        <span class="brand-title">FLYTAU</span>
+                        <span class="brand-subtitle">Flight Management Suite</span>
+                    </div>
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="top-bar-right">
+            {% if session.get('role') == 'manager' %}
+                <div class="top-greeting">
+                    <span class="top-greeting-title">
+                        Hello, {{ session.get('manager_name', 'Manager') }}!
+                    </span>
+                    <span class="top-greeting-sub">
+                        Great to have you with us on duty.
+                    </span>
+                </div>
+            {% elif session.get('role') == 'customer' %}
+                <div class="top-greeting">
+                    <span class="top-greeting-title">
+                        Hello, {{ session.get('customer_name', 'Customer') }}!
+                    </span>
+                    <span class="top-greeting-sub">
+                        Welcome back to FLYTAU.
+                    </span>
+                </div>
+            {% endif %}
+
+            <nav class="top-nav">
+                {% if session.get('role') == 'manager' %}
+                    {% if nav_locked %}
+                        <span class="top-nav-link top-nav-link--disabled">Dashboard</span>
+                        <span class="top-nav-link top-nav-link--disabled">Flights</span>
+                        <span class="top-nav-link top-nav-link--disabled">Crew</span>
+                        <span class="top-nav-link top-nav-link--disabled">Aircrafts</span>
+                        <span class="top-nav-link top-nav-link--disabled">Orders</span>
+                        <span class="top-nav-link top-nav-link--disabled">Reports</span>
+                    {% else %}
+                        <a href="{{ url_for('main.manager_home') }}" class="top-nav-link">
+                            Dashboard
+                        </a>
+                        <a href="{{ url_for('main.manager_flights') }}" class="top-nav-link">
+                            Flights
+                        </a>
+                        <a href="{{ url_for('main.manager_crew_list') }}" class="top-nav-link">
+                            Crew
+                        </a>
+                        <a href="{{ url_for('main.manager_aircrafts') }}" class="top-nav-link">
+                            Aircrafts
+                        </a>
+                        <a href="{{ url_for('main.manager_orders') }}" class="top-nav-link">
+                            Orders
+                        </a>
+                        <a href="{{ url_for('main.manager_reports_menu') }}" class="top-nav-link">
+                            Reports
+                        </a>
+                    {% endif %}
+                {% elif session.get('role') == 'customer' %}
+                    {% if nav_locked %}
+                        <span class="top-nav-link top-nav-link--disabled">My area</span>
+                        <span class="top-nav-link top-nav-link--disabled">Search flights</span>
+                        <span class="top-nav-link top-nav-link--disabled">My orders</span>
+                    {% else %}
+                        <a href="{{ url_for('main.customer_home') }}" class="top-nav-link">
+                            My area
+                        </a>
+                        <a href="{{ url_for('main.search_flights') }}" class="top-nav-link">
+                            Search flights
+                        </a>
+                        <a href="{{ url_for('main.customer_orders') }}" class="top-nav-link">
+                            My orders
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('main.index') }}" class="top-nav-link">
+                        Home
+                    </a>
+                {% endif %}
+
+                {% if session.get('role') %}
+                    {% if nav_locked %}
+                        <span class="top-nav-pill top-nav-pill--disabled"
+                              title="You are in the middle of a workflow. Finish it before signing out.">
+                            Sign out
+                        </span>
+                    {% else %}
+                        <a href="{{ url_for('auth.logout') }}" class="top-nav-pill">
+                            Sign out
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('auth.login', role='manager') }}" class="top-nav-pill">
+                        Manager sign in
+                    </a>
+                    <a href="{{ url_for('auth.login', role='customer') }}" class="top-nav-pill top-nav-pill--ghost">
+                        Customer sign in
+                    </a>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+</header>
+
+<main class="page-main">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+                {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="page-footer">
+    <span>© FLYTAU Project – Information Systems &amp; Databases</span>
+</footer>
+
+</body>
+</html>

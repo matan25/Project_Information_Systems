@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header-row">
+        <h1 class="page-title">Report 1: Flight load factor</h1>
+        <div>
+            <a href="{{ url_for('main.manager_reports_menu') }}" class="btn-secondary">
+                All reports
+            </a>
+            <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+                Manager dashboard
+            </a>
+        </div>
+    </div>
+
+    <p class="subtitle">
+        Shows seat occupancy (load factor) for each completed flight:
+        number of sold seats, total seats, and occupancy percentage.
+    </p>
+
+    {% if flights %}
+    <div class="table-wrapper" style="max-height: 480px; overflow-y: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Flight ID</th>
+                    <th>Departure</th>
+                    <th>Total seats</th>
+                    <th>Sold seats</th>
+                    <th>Load factor (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in flights %}
+                <tr>
+                    <td>{{ f.Flight_id }}</td>
+                    <td>{{ f.Dep_str }}</td>
+                    <td>{{ f.Total_Seats }}</td>
+                    <td>{{ f.Sold_Seats }}</td>
+                    <td>{{ f.Load_Factor_Percent }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No completed flights found.</p>
+    {% endif %}
+</div>
+{% endblock %}

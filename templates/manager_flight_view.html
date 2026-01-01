@@ -1,0 +1,117 @@
+
+{% extends "base.html" %}
+{% block title %}Flight history {{ flight.Flight_id }}{% endblock %}
+
+{% block content %}
+<div class="page-main page-main--centered">
+  <div class="page-card manager-card card-form">
+
+    <div class="card-form-header">
+      <div>
+        <h1 class="page-title">Flight history: {{ flight.Flight_id }}</h1>
+        <p class="subtitle">
+          {{ flight.Origin_Airport_code }} → {{ flight.Destination_Airport_code }} |
+          Departure: {{ flight.Dep_str }} | Arrival: {{ flight.Arr_str }}<br>
+          Aircraft: {{ flight.AircraftManufacturer }} {{ flight.AircraftModel }} ({{ flight.AircraftSize }})<br>
+          Status: <strong>{{ flight.Status }}</strong>
+          {% if long_route %}
+            <span class="field-hint" style="display:block; margin-top:6px;">
+              Long-haul: duration ≥ {{ LONG_FLIGHT_THRESHOLD_MINUTES }} minutes
+              (arrival time is derived from departure time and route duration)
+            </span>
+          {% endif %}
+        </p>
+      </div>
+      <div class="card-form-logo">
+        <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+             alt="FLYTAU logo">
+      </div>
+    </div>
+
+    <div class="manager-greeting-inline" style="margin-bottom:10px;">
+      <span class="manager-greeting-title">
+        Hello, {{ session.get('manager_name', 'Manager') }}!
+      </span>
+      <span class="manager-greeting-sub">
+        Here is the full record of this completed flight.
+      </span>
+    </div>
+
+    <hr style="margin:10px 0; opacity:0.3; border-color:rgba(140,170,255,0.6);">
+
+    <!-- Crew -->
+    <h2 class="section-title">Crew</h2>
+
+    <div class="crew-columns">
+      <div class="crew-column">
+        <h3 class="section-subtitle">Pilots</h3>
+        {% if pilots and pilots|length > 0 %}
+          <ul class="crew-list crew-scroll-box crew-scroll-box--history">
+            {% for p in pilots %}
+              <li class="crew-history-item">
+                <strong>{{ p.First_name }} {{ p.Last_name }}</strong>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="field-hint">No pilots recorded for this flight.</div>
+        {% endif %}
+      </div>
+
+      <div class="crew-column">
+        <h3 class="section-subtitle">Attendants</h3>
+        {% if attendants and attendants|length > 0 %}
+          <ul class="crew-list crew-scroll-box crew-scroll-box--history">
+            {% for a in attendants %}
+              <li class="crew-history-item">
+                <strong>{{ a.First_name }} {{ a.Last_name }}</strong>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="field-hint">No attendants recorded for this flight.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <hr style="margin:16px 0; opacity:0.3; border-color:rgba(140,170,255,0.6);">
+
+    <!-- Seats -->
+    <h2 class="section-title">Seats (prices &amp; status)</h2>
+
+    <div class="table-shell table-shell--seats">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Row</th>
+            <th>Col</th>
+            <th>Class</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th>FlightSeat ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in seats %}
+            <tr>
+              <td>{{ s.Row_Num }}</td>
+              <td>{{ s.Col_Num }}</td>
+              <td>{{ s.Seat_Class }}</td>
+              <td>{{ "%.2f"|format(s.Seat_Price) }}</td>
+              <td>{{ s.Seat_Status }}</td>
+              <td>{{ s.FlightSeat_id }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="form-actions" style="margin-top:14px;">
+      <a href="{{ url_for('main.manager_flights') }}" class="btn-secondary">
+        Back to flights
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

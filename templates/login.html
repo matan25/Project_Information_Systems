@@ -1,0 +1,140 @@
+{# templates/login.html #}
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+
+{% block content %}
+
+{% if session.get('role') == 'manager' %}
+  <div class="auth-wrapper">
+    <div class="auth-card auth-card--info">
+      <div class="auth-logo">
+        <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+             alt="FLYTAU logo">
+      </div>
+      <h1 class="auth-title">You are signed in as manager</h1>
+      <p class="auth-subtitle">
+        To sign in as a customer, please sign out from the manager session first.
+      </p>
+      <a href="{{ url_for('main.manager_home') }}" class="btn-primary auth-submit">
+        Back to manager dashboard
+      </a>
+    </div>
+  </div>
+{% else %}
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+
+        {% if mode == 'manager' %}
+            <div class="auth-logo">
+                <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+                     alt="FLYTAU manager">
+            </div>
+            <h1 class="auth-title">Manager sign in</h1>
+            <p class="auth-subtitle">
+                Sign in to manage flights, aircrafts and crew.
+            </p>
+        {% else %}
+            <div class="auth-logo">
+                <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+                     alt="FLYTAU customer">
+            </div>
+            <h1 class="auth-title">Customer sign in</h1>
+            <p class="auth-subtitle">
+                Sign in to use your saved details and view your full booking history.
+                You can also continue as a guest without an account.
+            </p>
+        {% endif %}
+
+        <form class="auth-form" method="post" action="{{ url_for('auth.login') }}">
+            <input type="hidden" name="user_type"
+                   value="{{ 'manager' if mode == 'manager' else 'customer' }}">
+
+            <div class="form-row">
+                {% if mode == 'manager' %}
+                    <label for="identifier">Manager ID</label>
+                    <input id="identifier" name="identifier"
+                           type="text"
+                           placeholder="Manager ID (e.g. 123456789)"
+                           required>
+                    <div class="field-hint">
+                        Managers sign in with their numeric Manager ID.
+                    </div>
+                {% else %}
+                    <label for="identifier">Email</label>
+                    <input id="identifier" name="identifier"
+                           type="email"
+                           placeholder="name@example.com"
+                           required>
+                    <div class="field-hint">
+                        Customers sign in with their email address.
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-row">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password"
+                       placeholder="Your password" required>
+            </div>
+
+            <div class="form-row form-actions">
+                <button type="submit" class="btn-primary auth-submit">
+                    {% if mode == 'manager' %}
+                        Sign in as manager
+                    {% else %}
+                        Sign in as customer
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+
+        {% if mode != 'manager' %}
+            <div class="auth-divider">
+                <span>or</span>
+            </div>
+
+            <div class="guest-box">
+                <h2 class="guest-title">Continue as guest</h2>
+                <p class="field-hint" style="margin-bottom: 12px;">
+                    You can book flights without creating an account.
+                    You will be asked for your full name, email and phone number
+                    during checkout.
+                </p>
+                <div class="guest-actions">
+                    <a href="{{ url_for('main.search_flights') }}" class="btn-secondary">
+                        Book a flight as guest
+                    </a>
+                    <a href="{{ url_for('main.guest_order_lookup') }}" class="hero-link">
+                        View guest order (email &amp; order ID)
+                    </a>
+                </div>
+            </div>
+
+            <div class="form-row form-hint" style="margin-top: 20px;">
+                <span>
+                    New to FLYTAU?
+                    <a href="{{ url_for('auth.register') }}">Create a customer account</a>
+                </span>
+            </div>
+        {% endif %}
+
+        <div class="form-row form-hint" style="margin-top: 10px;">
+            {% if mode == 'manager' %}
+                <span>
+                    Want to sign in as a customer instead?
+                    <a href="{{ url_for('auth.login', role='customer') }}">Go to customer sign in</a>
+                </span>
+            {% else %}
+                <span>
+                    Are you a manager?
+                    <a href="{{ url_for('auth.login', role='manager') }}">Go to manager sign in</a>
+                </span>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}

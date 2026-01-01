@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header-row">
+        <h1 class="page-title">Report 5: Aircraft monthly activity</h1>
+        <div>
+            <a href="{{ url_for('main.manager_reports_menu') }}" class="btn-secondary">
+                All reports
+            </a>
+            <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+                Manager dashboard
+            </a>
+        </div>
+    </div>
+
+    <p class="subtitle">
+        Activity summary per aircraft and month: completed vs. cancelled flights,
+        utilization rate and most common route.
+    </p>
+
+    {% if records %}
+    <div class="table-wrapper" style="max-height: 480px; overflow-y: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Aircraft ID</th>
+                    <th>Manufacturer</th>
+                    <th>Model</th>
+                    <th>Month</th>
+                    <th>Flights completed</th>
+                    <th>Flights cancelled</th>
+                    <th>Total flights</th>
+                    <th>Utilization (%)</th>
+                    <th>Dominant route</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    <td>{{ r.Aircraft_id }}</td>
+                    <td>{{ r.Manufacturer }}</td>
+                    <td>{{ r.Model }}</td>
+                    <td>{{ r.Month }}</td>
+                    <td>{{ r.Flights_Completed }}</td>
+                    <td>{{ r.Flights_Cancelled }}</td>
+                    <td>{{ r.Total_Flights }}</td>
+                    <td>{{ r.Utilization_Percent }}</td>
+                    <td>{{ r.Dominant_Route or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No aircraft activity data available.</p>
+    {% endif %}
+</div>
+{% endblock %}

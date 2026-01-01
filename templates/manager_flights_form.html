@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if mode == 'edit' %}Edit Flight {{ flight.Flight_id }}{% else %}Create new flight{% endif %} • FlyTAU
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .datetime-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .datetime-wrapper input[type="datetime-local"] {
+    width: 100%;
+  }
+
+  .datetime-wrapper input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(1);
+    opacity: 1;
+  }
+
+  .aircraft-table-shell {
+    margin-top: 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(116, 158, 255, 0.5);
+    background: rgba(5, 11, 32, 0.95);
+    overflow: hidden;
+  }
+
+  .aircraft-table-shell .data-table td:first-child,
+  .aircraft-table-shell .data-table th:first-child {
+    width: 70px;
+    text-align: center;
+  }
+
+  .cancel-flight-bar {
+    width: 100%;
+    justify-content: center;
+    margin-top: 18px;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal-card {
+    background: rgba(5, 11, 32, 0.98);
+    border-radius: 18px;
+    padding: 20px 24px;
+    border: 1px solid rgba(116, 158, 255, 0.7);
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  }
+
+  .modal-card h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+  }
+
+  .modal-card p {
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .btn-danger {
+    padding: 0.5rem 1.2rem;
+    border-radius: 999px;
+    border: none;
+    background: #ff4c4c;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+
+  .btn-danger:hover {
+    background: #ff6666;
+  }
+
+  body.modal-open {
+    overflow: hidden;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-card manager-card">
+
+  <div class="card-form-header">
+    <div>
+      <h1 class="page-title">
+        {% if mode == 'edit' %}
+          Edit Flight {{ flight.Flight_id }}
+        {% else %}
+          Create new flight
+        {% endif %}
+      </h1>
+      <p class="subtitle">
+        Configure the route, schedule and aircraft for this FlyTAU operation.<br>
+        Long-haul threshold: {{ LONG_FLIGHT_THRESHOLD_MINUTES }} minutes.
+      </p>
+    </div>
+    <div class="card-form-logo">
+      <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+           alt="FLYTAU logo"
+           class="brand-logo-img">
+    </div>
+  </div>
+
+  <form
+    id="flight-form"
+    method="post"
+    action="{% if mode == 'edit' %}
+              {{ url_for('main.manager_edit_flight', flight_id=flight.Flight_id) }}
+            {% else %}
+              {{ url_for('main.manager_new_flight') }}
+            {% endif %}"
+  >
+    {{ csrf_token() if csrf_token is defined }}
+
+    {% set current_route_id = request.form.get('route_id', (flight.Route_id if flight else '')) %}
+
+    {# Initial departure datetime value #}
+    {% set dep_initial = request.form.get('dep_datetime') %}
+    {% if not dep_initial %}
+      {% set dep_initial = min_dep %}
+      {% if flight %}
+        {% if flight.dep_value is defined and flight.dep_value %}
+          {% set dep_initial = flight.dep_value %}
+        {% elif flight.Dep_DateTime is defined %}
+          {% set dep_initial = flight.Dep_DateTime.strftime('%Y-%m-%dT%H:%M') %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {% if mode == 'edit' %}
+      {% set current_aircraft_id = flight.Aircraft_id %}
+    {% else %}
+      {% set current_aircraft_id = request.form.get('aircraft_id', '') %}
+    {% endif %}
+
+    <h2 class="section-title">Flight schedule</h2>
+
+    <div class="form-grid">
+      {% if mode == 'edit' %}
+        <div class="form-row">
+          <label>Flight ID</label>
+          <div class="field-hint">
+            <strong>{{ flight.Flight_id }}</strong>
+          </div>
+          <input type="hidden" name="flight_id" value="{{ flight.Flight_id }}">
+        </div>
+      {% else %}
+        <div class="form-row">
+          <label>Flight ID</label>
+          <div class="field-hint">
+            The Flight ID is generated automatically
+            (FT001, FT002, …). You do not need to choose it manually.
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="form-row">
+        <label for="route_id">Route</label>
+        <select id="route_id"
+                name="route_id"
+                required
+                {% if mode == 'edit' or freeze_schedule %}disabled{% endif %}>
+          <option value="">-- Select route --</option>
+          {% for r in routes %}
+            <option value="{{ r.Route_id }}"
+                    {% if current_route_id == r.Route_id %}selected{% endif %}>
+              {{ r.Origin_Airport_code }} → {{ r.Destination_Airport_code }}
+              ({{ r.Duration_Minutes }} min)
+            </option>
+          {% endfor %}
+        </select>
+
+        {% if (mode == 'edit' or freeze_schedule) and flight and flight.Route_id %}
+          <input type="hidden" name="route_id" value="{{ flight.Route_id }}">
+        {% endif %}
+      </div>
+
+      <div class="form-row datetime-wrapper">
+        <label for="dep_datetime">Departure date &amp; time</label>
+        <input type="datetime-local"
+               id="dep_datetime"
+               name="dep_datetime"
+               step="60"
+               required
+               min="{{ min_dep }}"
+               value="{{ dep_initial }}"
+               {% if mode == 'edit' or freeze_schedule %}disabled{% endif %}>
+        {% if mode == 'edit' %}
+          <div class="field-hint">
+            Departure date &amp; time for this flight are already set and cannot be changed.
+          </div>
+        {% elif freeze_schedule %}
+          <div class="field-hint">
+            Departure date &amp; time are now locked for this new flight.
+            To change them, go back and restart the creation flow.
+          </div>
+        {% else %}
+          <div class="field-hint">
+            Choose the departure date from the calendar and the time from the clock.
+            The system will verify that the final Date &amp; Time are in the future.
+          </div>
+        {% endif %}
+
+        {# Hidden field so the server still receives the datetime when the input is locked #}
+        {% if mode == 'edit' or freeze_schedule %}
+          <input type="hidden" name="dep_datetime" value="{{ dep_initial }}">
+        {% endif %}
+      </div>
+
+      {% if mode == 'edit' %}
+      <div class="form-row">
+        <label>Status</label>
+        <div class="field-hint">
+          {{ flight.Status }}
+        </div>
+        <input type="hidden" name="status" value="{{ flight.Status }}">
+      </div>
+      {% endif %}
+    </div>
+
+    <h2 class="section-title">Aircraft selection</h2>
+    <p class="field-hint">
+      Only aircraft that satisfy time, location and crew constraints are shown.
+      For long-haul routes, only <strong>Large</strong> aircraft are allowed.
+    </p>
+
+    {# ======== EDIT MODE – AIRCRAFT IS LOCKED ======== #}
+    {% if mode == 'edit' %}
+
+      <p class="field-hint">
+        The aircraft for this flight is already selected and <strong>cannot be changed</strong>.
+        The schedule (departure date and time) is also locked for this flight.
+      </p>
+
+      <div class="aircraft-table-shell">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Aircraft</th>
+              <th>Size</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                {% if current_aircraft %}
+                  <strong>{{ current_aircraft.Manufacturer }} {{ current_aircraft.Model }}</strong>
+                {% else %}
+                  <strong>Aircraft {{ flight.Aircraft_id }}</strong>
+                {% endif %}
+              </td>
+              <td>
+                {% if current_aircraft %}
+                  {{ current_aircraft.Size }}
+                {% else %}
+                  –
+                {% endif %}
+              </td>
+              <td>{{ flight.Aircraft_id }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {# Hidden field – server logic uses the aircraft from DB, not from user input #}
+      <input type="hidden" name="aircraft_id" value="{{ flight.Aircraft_id }}">
+
+    {# ======== CREATE MODE – availability check and aircraft selection ======== #}
+    {% else %}
+      {% if not freeze_schedule %}
+        <p class="field-hint">
+          After filling the route and departure date &amp; time,
+          click <strong>Check availability</strong> to see a list of aircraft
+          that can operate this flight. You will then select exactly one aircraft
+          from a table, using a radio button.
+        </p>
+      {% else %}
+        {% if aircrafts %}
+          <p class="field-hint">
+            Select exactly one aircraft for this flight from the list below.
+          </p>
+          <div class="aircraft-table-shell">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th>Aircraft</th>
+                  <th>Size</th>
+                  <th>ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ac in aircrafts %}
+                  <tr>
+                    <td>
+                      <input type="radio"
+                             name="aircraft_id"
+                             value="{{ ac.Aircraft_id }}"
+                             {% if (current_aircraft_id|string) == (ac.Aircraft_id|string) %}checked{% endif %}
+                             required>
+                    </td>
+                    <td><strong>{{ ac.Manufacturer }} {{ ac.Model }}</strong></td>
+                    <td>{{ ac.Size }}</td>
+                    <td>{{ ac.Aircraft_id }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="field-hint error-text">
+            No aircraft currently satisfy all constraints for this route and time.
+            Adjust the route or departure time and try again.
+          </p>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    <div class="form-actions form-actions--flight">
+      {% if mode == 'edit' %}
+        <button type="submit" class="btn-primary">
+          Save &amp; continue to crew
+        </button>
+      {% else %}
+        <a href="{{ url_for('main.manager_flights') }}"
+           class="btn-secondary"
+           data-allow-nav="true">
+          Cancel &amp; return to flights board
+        </a>
+
+        <button type="submit" class="btn-primary">
+          {% if freeze_schedule %}Create flight{% else %}Check availability{% endif %}
+        </button>
+      {% endif %}
+    </div>
+
+    {% if mode == 'edit' %}
+      <input type="hidden" name="cancel_flight" id="cancel-flight-input" value="0">
+
+      <button type="button"
+              id="cancel-flight-btn"
+              class="btn-primary cancel-flight-bar">
+        Cancel this flight
+      </button>
+    {% endif %}
+
+  </form>
+
+  {% if mode == 'edit' %}
+    <div id="cancel-modal" class="modal-overlay">
+      <div class="modal-card">
+        <h3>Cancel this flight?</h3>
+        <p>
+          Are you sure you want to cancel this flight?
+          This will prevent any new bookings and the crew assignments
+          will be cleared according to company policy.
+        </p>
+        <div class="modal-actions">
+          <button type="button"
+                  id="cancel-modal-close"
+                  class="btn-secondary">
+            Back to editing
+          </button>
+          <button type="button"
+                  id="cancel-modal-confirm"
+                  class="btn-danger">
+            Yes, cancel this flight
+          </button>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+{% if mode == 'edit' %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const cancelBtn   = document.getElementById('cancel-flight-btn');
+    const modal       = document.getElementById('cancel-modal');
+    const closeBtn    = document.getElementById('cancel-modal-close');
+    const confirmBtn  = document.getElementById('cancel-modal-confirm');
+    const cancelInput = document.getElementById('cancel-flight-input');
+    const form        = document.getElementById('flight-form');
+
+    if (!cancelBtn || !modal || !closeBtn || !confirmBtn || !cancelInput || !form) {
+      return;
+    }
+
+    cancelBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      modal.classList.add('active');
+      document.body.classList.add('modal-open');
+    });
+
+    closeBtn.addEventListener('click', function () {
+      modal.classList.remove('active');
+      document.body.classList.remove('modal-open');
+    });
+
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) {
+        modal.classList.remove('active');
+        document.body.classList.remove('modal-open');
+      }
+    });
+
+    confirmBtn.addEventListener('click', function () {
+      cancelInput.value = '1';
+      form.submit();
+    });
+  });
+</script>
+{% endif %}
+{% endblock %}

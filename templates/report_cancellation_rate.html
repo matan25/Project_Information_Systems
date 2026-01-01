@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header-row">
+        <h1 class="page-title">Report 4: Cancellation rate per month</h1>
+        <div>
+            <a href="{{ url_for('main.manager_reports_menu') }}" class="btn-secondary">
+                All reports
+            </a>
+            <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+                Manager dashboard
+            </a>
+        </div>
+    </div>
+
+    <p class="subtitle">
+        Monthly overview of all orders and the share that were cancelled
+        by customers or by the system.
+    </p>
+
+    {% if months %}
+    <div class="table-wrapper" style="max-height: 480px; overflow-y: auto;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total orders</th>
+                    <th>Cancelled orders</th>
+                    <th>Cancellation rate (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in months %}
+                <tr>
+                    <td>{{ m.YearMonth }}</td>
+                    <td>{{ m.Total_Orders }}</td>
+                    <td>{{ m.Cancelled_Orders }}</td>
+                    <td>{{ m.Cancellation_Rate_Percent }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No order data available.</p>
+    {% endif %}
+</div>
+{% endblock %}

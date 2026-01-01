@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}
+  Flight {{ flight.Flight_id }} — Crew assignment • FlyTAU Manager
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .crew-columns {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+
+  .crew-column {
+    flex: 1 1 0;
+  }
+
+  .crew-list {
+    margin-top: 0.5rem;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 0.4rem 0.3rem;
+    border-radius: 1rem;
+    background: rgba(10, 24, 61, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .crew-checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+  }
+
+  .crew-checkbox-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .crew-checkbox-row input[type="checkbox"] {
+    margin-top: 0.25rem;
+  }
+
+  .crew-checkbox-label {
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-card manager-card">
+
+  <div class="card-form-header">
+    <div>
+      <h1 class="page-title">
+        Flight {{ flight.Flight_id }} — Crew assignment
+      </h1>
+      <p class="subtitle">
+        {{ flight.Origin_Airport_code }} → {{ flight.Destination_Airport_code }}
+        · {{ flight.Dep_str }} → {{ flight.Arr_str }}
+      </p>
+      <p class="subtitle">
+        Aircraft: {{ flight.AircraftModel }} ·
+        Required: {{ required_pilots }} pilot(s), {{ required_attendants }} attendant(s)
+      </p>
+    </div>
+    <div class="card-form-logo">
+      <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+           alt="FLYTAU logo"
+           class="brand-logo-img">
+    </div>
+  </div>
+
+  <section class="form-card">
+    <form method="post" class="crew-form">
+
+      <div class="crew-columns">
+        <!-- Pilots -->
+        <div class="crew-column">
+          <h2 class="section-title">Pilots</h2>
+          <p class="field-hint">
+            Select exactly {{ required_pilots }} pilot(s).
+          </p>
+
+          <div class="crew-list">
+            {% for p in pilots %}
+              <label class="crew-checkbox-row">
+                <input type="checkbox"
+                       name="pilots"
+                       value="{{ p.Pilot_id }}"
+                       {% if p.Pilot_id|string in current_pilot_ids %}checked{% endif %}>
+                <span class="crew-checkbox-label">
+                  {{ p.Last_name }}, {{ p.First_name }} (ID {{ p.Pilot_id }})
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Attendants -->
+        <div class="crew-column">
+          <h2 class="section-title">Flight attendants</h2>
+          <p class="field-hint">
+            Select exactly {{ required_attendants }} attendant(s).
+          </p>
+
+          <div class="crew-list">
+            {% for a in attendants %}
+              <label class="crew-checkbox-row">
+                <input type="checkbox"
+                       name="attendants"
+                       value="{{ a.Attendant_id }}"
+                       {% if a.Attendant_id|string in current_att_ids %}checked{% endif %}>
+                <span class="crew-checkbox-label">
+                  {{ a.Last_name }}, {{ a.First_name }} (ID {{ a.Attendant_id }})
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">
+          Save crew &amp; continue to seat pricing
+        </button>
+
+        {# חזור לפרטי הטיסה – לא ללוח הטיסות #}
+        <a href="{{ url_for('main.manager_edit_flight', flight_id=flight.Flight_id) }}"
+           class="btn-secondary">
+          Back to flight details
+        </a>
+      </div>
+
+    </form>
+  </section>
+
+</div>
+{% endblock %}

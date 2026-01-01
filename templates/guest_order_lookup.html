@@ -1,0 +1,32 @@
+{# templates/guest_order_lookup.html #}
+{% extends "base.html" %}
+{% block title %}Guest booking lookup{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <h1 class="auth-title">Guest booking lookup</h1>
+    <p class="auth-subtitle">
+      Enter the email address used for the booking and the order ID.
+    </p>
+
+    <form method="post" class="auth-form">
+      <div class="form-row">
+        <label for="email">Email used for booking</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+
+      <div class="form-row">
+        <label for="order_code">Order ID</label>
+        <input type="text" id="order_code" name="order_code" required>
+      </div>
+
+      <div class="form-row form-actions">
+        <button type="submit" class="btn-primary auth-submit">
+          View booking
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

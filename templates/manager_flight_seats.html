@@ -1,0 +1,452 @@
+{# templates/manager_seat_pricing.html #}
+{% extends "base.html" %}
+
+{% block title %}
+  Flight {{ flight.Flight_id }} — Seat pricing • FlyTAU Manager
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Toolbar over the table: filters + bulk actions */
+  .seat-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    margin-bottom: 0.9rem;
+    align-items: flex-end;
+  }
+  .seat-toolbar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 160px;
+  }
+  .seat-toolbar-group label {
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  .seat-toolbar .toolbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  /* Footer image with the seat map */
+  .seatmap-footer {
+    margin-top: 2rem;
+    text-align: center;
+  }
+  .seatmap-footer img {
+    max-width: 100%;
+    border-radius: 16px;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: block;
+    margin: 0 auto;
+  }
+  .seatmap-footer-caption {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    opacity: 0.85;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    /* --------- Filtering ---------- */
+    const classFilter   = document.getElementById('filter-seat-class');
+    const statusFilter  = document.getElementById('filter-seat-status');
+    const textFilter    = document.getElementById('filter-seat-text');
+    const clearBtn      = document.getElementById('filter-clear');
+    const seatRows      = document.querySelectorAll('tr.seat-row');
+
+    function applyFilters() {
+      const fClass  = classFilter ? classFilter.value : 'ALL';
+      const fStatus = statusFilter ? statusFilter.value : 'ALL';
+      const fText   = (textFilter && textFilter.value || '').trim().toLowerCase();
+
+      seatRows.forEach(function (row) {
+        const seatClass  = row.getAttribute('data-seat-class');
+        const seatStatus = row.getAttribute('data-seat-status');
+        const label      = row.getAttribute('data-seat-label').toLowerCase();
+
+        let visible = true;
+
+        if (fClass !== 'ALL' && seatClass !== fClass) {
+          visible = false;
+        }
+        if (fStatus !== 'ALL' && seatStatus !== fStatus) {
+          visible = false;
+        }
+        if (fText && !label.includes(fText)) {
+          visible = false;
+        }
+
+        row.style.display = visible ? '' : 'none';
+      });
+    }
+
+    if (classFilter)  classFilter.addEventListener('change', applyFilters);
+    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+    if (textFilter)   textFilter.addEventListener('input', applyFilters);
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (classFilter)  classFilter.value  = 'ALL';
+        if (statusFilter) statusFilter.value = 'ALL';
+        if (textFilter)   textFilter.value   = '';
+        applyFilters();
+      });
+    }
+
+    /* --------- Bulk price update (AVAILABLE seats only) ---------- */
+    const bulkBtn         = document.getElementById('bulk-apply-btn');
+    const bulkClassSelect = document.getElementById('bulk-seat-class');
+    const bulkPriceInput  = document.getElementById('bulk-price');
+
+    if (bulkBtn && bulkClassSelect && bulkPriceInput) {
+      bulkBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+
+        const rawPrice = bulkPriceInput.value;
+        const priceVal = parseFloat(rawPrice);
+
+        if (isNaN(priceVal) || priceVal < 0) {
+          return; // ערך לא תקין – לא מעדכן כלום
+        }
+
+        const targetClass = bulkClassSelect.value;
+
+        seatRows.forEach(function (row) {
+          const seatClass  = row.getAttribute('data-seat-class');
+          const seatStatus = row.getAttribute('data-seat-status');
+
+          // תמיד משנים רק מושבים זמינים
+          if (seatStatus !== 'Available') {
+            return;
+          }
+          // מסננים לפי מחלקה
+          if (targetClass !== 'ALL' && seatClass !== targetClass) {
+            return;
+          }
+
+          const priceInput = row.querySelector('input[name^="price_"]');
+          if (!priceInput) {
+            return;
+          }
+          priceInput.value = priceVal.toFixed(2);
+        });
+      });
+    }
+
+    /* --------- Single-seat price update (AVAILABLE seat only) ---------- */
+    const singleBtn        = document.getElementById('single-seat-apply-btn');
+    const singleLabelInput = document.getElementById('single-seat-label');
+    const singlePriceInput = document.getElementById('single-seat-price');
+
+    if (singleBtn && singleLabelInput && singlePriceInput) {
+      singleBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+
+        const labelRaw = (singleLabelInput.value || '').trim();
+        const price    = parseFloat(singlePriceInput.value);
+
+        // מצפה לפורמט: Row 1, Seat 1
+        const match = labelRaw.match(/row\s*(\d+)\s*,\s*seat\s*([0-9A-Za-z]+)/i);
+        if (!match || isNaN(price) || price < 0) {
+          return;
+        }
+
+        const rowVal = parseInt(match[1], 10);
+        const colVal = match[2].toUpperCase();
+
+        seatRows.forEach(function (row) {
+          const seatRow    = parseInt(row.getAttribute('data-row'), 10);
+          const seatCol    = (row.getAttribute('data-col') || '').toUpperCase();
+          const seatStatus = row.getAttribute('data-seat-status');
+
+          if (seatRow === rowVal && seatCol === colVal && seatStatus === 'Available') {
+            const priceInput = row.querySelector('input[name^="price_"]');
+            if (priceInput) {
+              priceInput.value = price.toFixed(2);
+            }
+          }
+        });
+      });
+    }
+  });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="page-card manager-card">
+
+  <div class="card-form-header">
+    <div>
+      <h1 class="page-title">
+        Flight {{ flight.Flight_id }} — Seat pricing
+      </h1>
+      <p class="subtitle">
+        {{ flight.Origin_Airport_code }} → {{ flight.Destination_Airport_code }}
+        · {{ flight.Dep_str }} → {{ flight.Arr_str }}
+        · Aircraft: {{ flight.AircraftModel }}
+      </p>
+      {% if is_readonly %}
+        <p class="hero-badge badge-readonly">
+          Read-only: flight already departed or is Cancelled/Completed
+        </p>
+      {% endif %}
+    </div>
+    <div class="card-form-logo">
+      <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+           alt="FLYTAU logo"
+           class="brand-logo-img">
+    </div>
+  </div>
+
+  <section class="form-card wide">
+    {% if is_readonly %}
+      <p class="field-hint">
+        This flight can no longer be edited. You can only view current seat prices and statuses.
+      </p>
+    {% endif %}
+
+    {# נבדוק אילו מחלקות באמת קיימות בטיסה הזאת #}
+    {% set ns = namespace(has_business=false, has_economy=false) %}
+    {% for s in seats %}
+      {% if s.Seat_Class == 'Business' %}
+        {% set ns.has_business = true %}
+      {% elif s.Seat_Class == 'Economy' %}
+        {% set ns.has_economy = true %}
+      {% endif %}
+    {% endfor %}
+
+    {# ====== סרגל פילטרים ====== #}
+    <div class="seat-toolbar">
+      <div class="seat-toolbar-group">
+        <label for="filter-seat-class">Filter by class</label>
+        <select id="filter-seat-class"
+                class="form-select dark-select small-select">
+          <option value="ALL">All classes</option>
+          {% if ns.has_business %}
+            <option value="Business">Business</option>
+          {% endif %}
+          {% if ns.has_economy %}
+            <option value="Economy">Economy</option>
+          {% endif %}
+        </select>
+      </div>
+
+      <div class="seat-toolbar-group">
+        <label for="filter-seat-status">Filter by status</label>
+        <select id="filter-seat-status"
+                class="form-select dark-select small-select">
+          <option value="ALL">All statuses</option>
+          <option value="Available">Available</option>
+          <option value="Blocked">Blocked</option>
+          <option value="Sold">Sold</option>
+        </select>
+      </div>
+
+      <div class="seat-toolbar-group">
+        <label for="filter-seat-text">Filter by seat (Row X, Seat Y)</label>
+        <input id="filter-seat-text"
+               type="text"
+               class="form-input small-input"
+               placeholder="e.g. Row 1, Seat 1">
+      </div>
+
+      <div class="toolbar-actions">
+        <button type="button" id="filter-clear" class="btn-secondary">
+          Clear filters
+        </button>
+      </div>
+    </div>
+
+    {# ====== פעולת עדכון מחיר מרוכזת (רק זמינים) ====== #}
+    {% if not is_readonly %}
+      <div class="seat-toolbar"
+           style="margin-bottom: 0.9rem; border-top: 1px solid rgba(148,163,255,0.35); padding-top: 0.8rem;">
+        <div class="seat-toolbar-group">
+          <label for="bulk-seat-class">Bulk price update (available seats)</label>
+          <select id="bulk-seat-class"
+                  name="bulk_class"
+                  class="form-select dark-select small-select">
+            <option value="ALL">All classes</option>
+            {% if ns.has_business %}
+              <option value="Business">Business only</option>
+            {% endif %}
+            {% if ns.has_economy %}
+              <option value="Economy">Economy only</option>
+            {% endif %}
+          </select>
+        </div>
+
+        <div class="seat-toolbar-group">
+          <label for="bulk-price">New price</label>
+          <input id="bulk-price"
+                 name="bulk_price"
+                 type="number"
+                 min="0"
+                 step="0.01"
+                 class="form-input small-input"
+                 placeholder="e.g. 199.99">
+        </div>
+
+        <div class="toolbar-actions">
+          <button type="button"
+                  id="bulk-apply-btn"
+                  class="btn-primary">
+            Apply to matching seats
+          </button>
+        </div>
+      </div>
+
+      {# ====== עדכון חד-פעמי של כיסא ספציפי (רק זמין) ====== #}
+      <div class="seat-toolbar"
+           style="margin-bottom: 1.3rem; border-top: 1px dashed rgba(148,163,255,0.35); padding-top: 0.8rem;">
+        <div class="seat-toolbar-group" style="min-width: 260px;">
+          <label for="single-seat-label">Single seat (Row X, Seat Y)</label>
+          <input id="single-seat-label"
+                 type="text"
+                 class="form-input small-input"
+                 placeholder="Row 1, Seat 1">
+        </div>
+        <div class="seat-toolbar-group">
+          <label for="single-seat-price">New price</label>
+          <input id="single-seat-price"
+                 type="number"
+                 min="0"
+                 step="0.01"
+                 class="form-input small-input"
+                 placeholder="e.g. 249.00">
+        </div>
+        <div class="toolbar-actions">
+          <button type="button"
+                  id="single-seat-apply-btn"
+                  class="btn-secondary">
+            Apply to this seat (available only)
+          </button>
+        </div>
+      </div>
+    {% endif %}
+
+    <form method="post" class="seats-form">
+      <div class="table-shell table-shell--seats">
+        <table class="data-table seats-table">
+          <thead>
+            <tr>
+              <th>Seat</th>
+              <th>Class</th>
+              <th>Price</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in seats %}
+              <tr class="seat-row"
+                  data-seat-class="{{ s.Seat_Class }}"
+                  data-seat-status="{{ s.Seat_Status }}"
+                  data-seat-label="Row {{ s.Row_Num }}, Seat {{ s.Col_Num }}"
+                  data-row="{{ s.Row_Num }}"
+                  data-col="{{ s.Col_Num }}">
+                <td>
+                  Row {{ s.Row_Num }}, Seat {{ s.Col_Num }}
+                </td>
+                <td>
+                  {% if s.Seat_Class == 'Business' %}
+                    <span class="chip chip--business">
+                      {{ s.Seat_Class }}
+                    </span>
+                  {% else %}
+                    <span class="chip chip--economy">
+                      {{ s.Seat_Class }}
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {# שינוי מחיר אפשרי רק למושבים זמינים + לא במצב read-only #}
+                  {% if is_readonly or s.Seat_Status != 'Available' %}
+                    <span class="readonly-value">
+                      {{ "%.2f"|format(s.Seat_Price) }} $
+                    </span>
+                  {% else %}
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name="price_{{ s.FlightSeat_id }}"
+                      class="form-input small-input"
+                      value="{{ "%.2f"|format(s.Seat_Price) }}"
+                    >
+                  {% endif %}
+                </td>
+                <td>
+                  {% if is_readonly %}
+                    <span class="readonly-value status-{{ s.Seat_Status|lower }}">
+                      {{ s.Seat_Status }}
+                    </span>
+                  {% else %}
+                    {% if s.Seat_Status == 'Sold' %}
+                      <span class="readonly-value status-sold">
+                        Sold
+                      </span>
+                    {% else %}
+                      <select
+                        name="status_{{ s.FlightSeat_id }}"
+                        class="form-select dark-select small-select"
+                      >
+                        <option value="Available"
+                          {% if s.Seat_Status == 'Available' %}selected{% endif %}>
+                          Available
+                        </option>
+                        <option value="Blocked"
+                          {% if s.Seat_Status == 'Blocked' %}selected{% endif %}>
+                          Blocked
+                        </option>
+                      </select>
+                    {% endif %}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="form-actions">
+        {% if not is_readonly %}
+          <button type="submit" class="btn-primary">
+            Save seat pricing
+          </button>
+
+          {# בזמן תהליך (יצירה/עריכה) – חזרה לצוות, לא ללוח הטיסות #}
+          <a href="{{ url_for('main.manager_flight_crew', flight_id=flight.Flight_id) }}"
+             class="btn-secondary">
+            Back to crew
+          </a>
+        {% else %}
+          {# מצב היסטורי בלבד – אפשר לחזור ללוח הטיסות #}
+          <a href="{{ url_for('main.manager_flights') }}"
+             class="btn-secondary"
+             data-allow-nav="true">
+            Back to flights board
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  {# תמונת המחלקה בתחתית הדף – דאג שהקובץ יישמר כ-static/img/seatmap.png #}
+  <div class="seatmap-footer">
+    <img src="{{ url_for('static', filename='img/seatmap.png') }}"
+         alt="Example seat map layout">
+    <div class="seatmap-footer-caption">
+      Reference seat map for typical  cabin layout.
+    </div>
+  </div>
+
+</div>
+{% endblock %}

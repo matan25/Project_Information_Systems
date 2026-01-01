@@ -1,0 +1,188 @@
+{# templates/booking_seats.html #}
+{% extends "base.html" %}
+{% block title %}Select Seats{% endblock %}
+
+{% block content %}
+<div class="page-main">
+  <div class="page-card">
+    <h1 class="page-title">Select Seats</h1>
+    <div class="page-header-left">
+      <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
+           alt="FLYTAU logo"
+           class="flytau-logo">
+    </div>
+    <p class="subtitle">
+      Flight <strong>{{ flight.Flight_id }}</strong>:
+      {{ flight.Origin_Airport_code }} &rarr; {{ flight.Destination_Airport_code }} <br>
+      Departure: {{ flight.Dep_str }} | Aircraft: {{ flight.Model }}
+    </p>
+
+    <div style="margin-bottom: 16px;">
+      <a href="{{ url_for('main.search_flights') }}" class="btn-secondary">
+        Back to flights board
+      </a>
+    </div>
+
+    <form method="post" action="{{ url_for('main.book_seats', flight_id=flight.Flight_id) }}">
+
+      {% if seats %}
+        {% set selected_ids = [] %}
+        {% if guest_form and guest_form.selected_seat_ids is defined %}
+          {% set selected_ids = guest_form.selected_seat_ids %}
+        {% endif %}
+
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; border-radius: 12px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">Select</th>
+                <th>Class</th>
+                <th>Seat</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in seats %}
+                <tr>
+                  <td style="text-align: center;">
+                    <input type="checkbox"
+                           name="selected_seats"
+                           value="{{ s.FlightSeat_id }}"
+                           style="transform: scale(1.2); cursor: pointer;"
+                           {% if selected_ids and s.FlightSeat_id in selected_ids %}checked{% endif %}>
+                  </td>
+                  <td><strong>{{ s.Seat_Class }}</strong></td>
+                  <td>Row {{ s.Row_Num }} / Seat {{ s.Col_Num }}</td>
+                  <td>${{ "%.2f"|format(s.Seat_Price) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="
+              margin-top: 24px;
+              padding: 16px;
+              border-radius: 12px;
+              background: #f7f9fc;
+              color: #0b225e;
+        ">
+          {% if is_registered and customer %}
+            <h3 style="margin-top: 0;">Passenger details (registered customer)</h3>
+            <p style="margin-bottom: 4px;">
+              <strong>Name:</strong>
+              {{ customer.First_Name }} {{ customer.Last_Name }}<br>
+              <strong>Email:</strong> {{ customer.Customer_Email }}<br>
+              <strong>Passport:</strong> {{ customer.Passport_No or "-" }}<br>
+              <strong>Birth date:</strong>
+              {{ customer.Birth_Date.strftime("%d/%m/%Y") if customer.Birth_Date else "-" }}
+            </p>
+
+            {% if customer_phones and customer_phones|length > 0 %}
+              <p style="margin-top: 8px; margin-bottom: 0;">
+                <strong>Phone numbers:</strong>
+                {{ customer_phones|join(", ") }}
+              </p>
+            {% else %}
+              <p style="margin-top: 8px; margin-bottom: 0;">
+                <strong>Phone numbers:</strong> -
+              </p>
+            {% endif %}
+
+            <p class="field-hint" style="margin-top: 6px; color:#555;">
+              Your contact details are loaded automatically from your profile.
+            </p>
+
+          {% else %}
+            <h3 style="margin-top: 0;">Passenger details (guest)</h3>
+            <div class="form-row"
+                 style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 160px;">
+                <label for="guest_first_name" style="color:#0b225e;">
+                  First name (English)
+                </label>
+                <input type="text"
+                       id="guest_first_name"
+                       name="guest_first_name"
+                       required
+                       value="{{ guest_form.first_name if guest_form else '' }}">
+              </div>
+              <div style="flex: 1; min-width: 160px;">
+                <label for="guest_last_name" style="color:#0b225e;">
+                  Last name (English)
+                </label>
+                <input type="text"
+                       id="guest_last_name"
+                       name="guest_last_name"
+                       required
+                       value="{{ guest_form.last_name if guest_form else '' }}">
+              </div>
+              <div style="flex: 1; min-width: 200px;">
+                <label for="guest_email" style="color:#0b225e;">Email</label>
+                <input type="email"
+                       id="guest_email"
+                       name="guest_email"
+                       required
+                       value="{{ guest_form.email if guest_form else '' }}">
+              </div>
+            </div>
+
+            <div class="form-row"
+                 style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
+              <div style="flex:1; min-width:160px;">
+                <label for="guest_phone" style="color:#0b225e;">Phone 1 (required)</label>
+                <input type="tel"
+                       id="guest_phone"
+                       name="guest_phone"
+                       required
+                       style="background-color:#152347; color:#ffffff; border:1px solid #ccc;"
+                       value="{% if guest_form and guest_form.phones_raw and guest_form.phones_raw|length > 0 %}{{ guest_form.phones_raw[0] }}{% endif %}">
+              </div>
+              <div style="flex:1; min-width:160px;">
+                <label for="guest_phone2" style="color:#0b225e;">Phone 2 (optional)</label>
+                <input type="tel"
+                       id="guest_phone2"
+                       name="guest_phone2"
+                       style="background-color:#152347; color:#ffffff; border:1px solid #ccc;"
+                       value="{% if guest_form and guest_form.phones_raw and guest_form.phones_raw|length > 1 %}{{ guest_form.phones_raw[1] }}{% endif %}">
+              </div>
+              <div style="flex:1; min-width:160px;">
+                <label for="guest_phone3" style="color:#0b225e;">Phone 3 (optional)</label>
+                <input type="tel"
+                       id="guest_phone3"
+                       name="guest_phone3"
+                       style="background-color:#152347; color:#ffffff; border:1px solid #ccc;"
+                       value="{% if guest_form and guest_form.phones_raw and guest_form.phones_raw|length > 2 %}{{ guest_form.phones_raw[2] }}{% endif %}">
+              </div>
+            </div>
+
+            <p class="field-hint" style="margin-top: 6px; color:#555;">
+              You can enter up to 3 phone numbers so we can contact you if needed.
+            </p>
+          {% endif %}
+        </div>
+
+        <div class="form-actions"
+             style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center;">
+          <span class="field-hint" style="color:#f5f7ff;">
+            No online payment. On the next screen you will see a full summary
+            before final confirmation.
+          </span>
+          <button type="submit" class="btn-primary"
+                  onclick="this.disabled=true; this.innerText='Loading summary...'; this.form.submit();">
+            Continue to summary
+          </button>
+        </div>
+
+      {% else %}
+        <div style="padding: 20px; text-align: center; color: red;">
+          <h3>Sorry, no seats available for this flight.</h3>
+          <a href="{{ url_for('main.search_flights') }}" class="btn-secondary">
+            Back to Search
+          </a>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endblock %}
