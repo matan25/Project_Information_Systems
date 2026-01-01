@@ -24,3 +24,4 @@ main = create_main()
 
 if __name__ == "__main__":
     main.run(debug=True)
+    app = main
