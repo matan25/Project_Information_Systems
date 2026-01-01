@@ -2,9 +2,6 @@ DROP DATABASE IF EXISTS flytau;
 CREATE DATABASE flytau;
 USE flytau;
 
---------------------------------------------------
--- AIRPORTS AND ROUTES
---------------------------------------------------
 
 CREATE TABLE Airports (
     Airport_code        VARCHAR(10) PRIMARY KEY,
@@ -26,9 +23,6 @@ CREATE TABLE Flight_Routes (
         UNIQUE (Origin_Airport_code, Destination_Airport_code)
 );
 
---------------------------------------------------
--- AIRCRAFTS AND SEATS
---------------------------------------------------
 
 CREATE TABLE Aircrafts (
     Aircraft_id     VARCHAR(10) PRIMARY KEY,
@@ -50,9 +44,6 @@ CREATE TABLE Seats (
         UNIQUE (Aircraft_id, Row_Num, Col_Num)
 );
 
---------------------------------------------------
--- CUSTOMERS AND PHONES
---------------------------------------------------
 
 CREATE TABLE Register_Customers (
 	Customer_Email               VARCHAR(80) PRIMARY KEY, 
@@ -87,9 +78,7 @@ CREATE TABLE Guest_Customers_Phones (
     CONSTRAINT fk_email_customer_guest
         FOREIGN KEY (Customer_Email) REFERENCES  Guest_Customers(Customer_Email)
 );
---------------------------------------------------
--- MANAGERS, PILOTS, ATTENDANTS
---------------------------------------------------
+
 
 CREATE TABLE Managers (
     Manager_id          VARCHAR(9) PRIMARY KEY,
@@ -127,9 +116,6 @@ CREATE TABLE FlightAttendants (
     Long_Haul_Certified BOOLEAN NOT NULL DEFAULT 0
 );
 
---------------------------------------------------
--- FLIGHTS, FLIGHTSEATS, ORDERS, TICKETS
---------------------------------------------------
 
 CREATE TABLE Flights (
     Flight_id       VARCHAR(10) PRIMARY KEY,
@@ -178,9 +164,6 @@ CREATE TABLE Tickets (
         FOREIGN KEY (Order_code) REFERENCES Orders(Order_code)
 );
 
---------------------------------------------------
--- FLIGHT CREW
---------------------------------------------------
 
 CREATE TABLE FlightCrew_Pilots (
     Pilot_id        VARCHAR(9) NOT NULL,
@@ -206,20 +189,13 @@ CREATE TABLE  IdCounters (
   Name    VARCHAR(50) NOT NULL PRIMARY KEY,
   NextNum BIGINT NOT NULL
 ); 
-# INITIAL DATA 
 
---------------------------------------------------
--- AIRPORTS
---------------------------------------------------
 INSERT INTO Airports (Airport_code, Airport_Name, City, Country) VALUES
 ('TLV', 'Ben Gurion',    'Tel Aviv', 'Israel'),
 ('LHR', 'Heathrow',      'London',   'UK'),
 ('JFK', 'John F Kennedy','New York', 'USA'),
 ('CDG', 'Charles de Gaulle','Paris', 'France');
 
---------------------------------------------------
--- FLIGHT ROUTES  (long-haul: > 360 minutes)
---------------------------------------------------
 INSERT INTO Flight_Routes (Route_id, Duration_Minutes, Origin_Airport_code, Destination_Airport_code) VALUES
 ('R001', 270, 'TLV', 'LHR'),   -- 4.5 hours
 ('R002', 240, 'TLV', 'CDG'),   -- 4  hours
@@ -234,9 +210,6 @@ INSERT INTO Flight_Routes (Route_id, Duration_Minutes, Origin_Airport_code, Dest
 ('R011',  75, 'LHR', 'CDG'),   -- 1.25 hours
 ('R012',  90, 'CDG', 'LHR');   -- 1.5  hours
 
---------------------------------------------------
--- AIRCRAFTS  (3rd one is Dassault, long flights use only Large)
---------------------------------------------------
 INSERT INTO Aircrafts (Aircraft_id, Manufacturer, Model, Size, Purchase_Date) VALUES
 ('ACB001', 'Boeing',   '787-9 Dreamliner', 'Large', '2015-01-10 00:00:00'),
 ('ACA002', 'Airbus',   'A320neo',          'Small', '2018-05-15 00:00:00'),
@@ -251,10 +224,6 @@ INSERT INTO Aircrafts (Aircraft_id, Manufacturer, Model, Size, Purchase_Date) VA
 ('ACD009', 'Dasso',    'E195-E2',           'Small', '2022-08-12 00:00:00'),
 ('ACB010', 'Boeing',   '787-10 Dreamliner', 'Large', '2017-12-01 00:00:00');
 
-
---------------------------------------------------
--- SEATS  (4/6 seats per aircraft, unique per Aircraft / Row / Col)
---------------------------------------------------
 INSERT INTO Seats (Seat_id, Aircraft_id, Row_Num, Col_Num, Seat_Class) VALUES
 -- AC001
 ('S001', 'ACB001', 1, 1, 'Business'),
@@ -322,10 +291,6 @@ INSERT INTO Seats (Seat_id, Aircraft_id, Row_Num, Col_Num, Seat_Class) VALUES
 ('S051', 'ACB010', 3, 1, 'Economy'),
 ('S052', 'ACB010', 3, 2, 'Economy');
 
-
---------------------------------------------------
--- CUSTOMERS  (2 registered, 2 guests – Customer_Password NULL)
---------------------------------------------------
 INSERT INTO Register_Customers
     (Customer_Email, First_Name, Last_Name, Passport_No,
      Registration_Date, Birth_Date, Customer_Password)
@@ -354,18 +319,12 @@ INSERT INTO Guest_Customers_Phones (Customer_Email, Phone_Number) VALUES
     ('roni@flytau.com',   '050-4444444');
 
 
---------------------------------------------------
--- MANAGERS  (2 managers, not connected to other tables)
---------------------------------------------------
 INSERT INTO Managers(Manager_id, First_Name, Last_Name, City, Street, House_Number,Phone_Number, Start_Working_Date, Manager_Password) VALUES
 ('300000001', 'אריאל',  'לוי',   'Tel Aviv', 'Herzl',        10,
  '03-1111111', '2018-01-01 08:00:00', 'managerPass1'),
 ('300000002', 'נעה',    'כהן',  'Haifa',    'Hagana',       5,
  '04-2222222', '2019-03-01 08:00:00', 'managerPass2');
 
---------------------------------------------------
--- PILOTS  
---------------------------------------------------
 INSERT INTO Pilots
 (Pilot_id, First_Name, Last_Name, City, Street, House_Number,
  Phone_Number, Start_Working_Date, Long_Haul_Certified)
@@ -396,9 +355,6 @@ VALUES
 ('400000020','עדי',     'רום',    'Rishon',     'Weizmann',    25, '03-5000020', '2023-08-01 08:00:00', 0);
 
 
---------------------------------------------------
--- FLIGHT ATTENDANTS
---------------------------------------------------
 INSERT INTO FlightAttendants
 (Attendant_id, First_Name, Last_Name, City, Street, House_Number,
  Phone_Number, Start_Working_Date, Long_Haul_Certified)
@@ -440,9 +396,6 @@ VALUES
 ('500000030','גילי',  'דגן',     'Rishon',     'Weizmann',   27, '03-6000030', '2023-08-01 08:00:00', 0);
 
 
---------------------------------------------------
--- FLIGHTS  (4 active flights, long flights use Large aircraft only)
---------------------------------------------------
 /*INSERT INTO Flights(Flight_id, Dep_DateTime, Arr_DateTime, Status, Aircraft_id, Route_id) VALUES
     -- Short flights (completed)
     ('F001', '2025-06-01 08:00:00', '2025-06-01 11:30:00', 'Completed', 'AC002', 'R001'),
@@ -488,9 +441,6 @@ VALUES
     -- long flight JFK-TLV on a Large Boeing, cancelled
     ('FT009', '2025-07-20 07:00:00','Cancelled', 'ACB001', 'R005');
 
---------------------------------------------------
--- FLIGHT SEATS  (unique per Flight/Seat, mark some as Sold)
---------------------------------------------------
 INSERT INTO FlightSeats
     (FlightSeat_id, Flight_id, Seat_id, Seat_Price, Seat_Status)
 VALUES
@@ -558,9 +508,7 @@ VALUES
     ('FS000045', 'FT009', 'S025', 600.00, 'Blocked'),
     ('FS000046', 'FT009', 'S026', 600.00, 'Blocked');
 
---------------------------------------------------
--- ORDERS 
---------------------------------------------------
+
 INSERT INTO Orders(Order_code,  Order_Date, Status, Cancel_Date, Customer_Email,  Flight_id, Customer_Type) VALUES
     -- January 2025
     ('O000000001','2025-01-10 09:15:00','Completed',          NULL,
@@ -604,9 +552,7 @@ INSERT INTO Orders(Order_code,  Order_Date, Status, Cancel_Date, Customer_Email,
     ('O000000012','2025-06-18 16:30:00','Cancelled-Customer', NULL,
      'daniel@flytau.com','FT006','Guest');
 
---------------------------------------------------
--- TICKETS  (Tickets for completed + cancelled-customer orders)
---------------------------------------------------
+
 -- INSERT INTO Tickets (FlightSeat_id, Order_id, Ticket_Status) VALUES
 -- ('FS009', 'O000000001', 'Active'),
 -- ('FS010', 'O000000001', 'Active'),
@@ -675,10 +621,6 @@ ON DUPLICATE KEY UPDATE NextNum =
   FROM FlightSeats
 );
 
---------------------------------------------------
--- FLIGHT CREW – PILOTS
--- Long-haul flights (F003, F004) use only certified pilots (Long_Haul_Certified = 1)
---------------------------------------------------
 INSERT INTO FlightCrew_Pilots (Pilot_id, Flight_id) VALUES
 -- F001 (TLV→LHR, small) – 2 pilots, כל אחד טיסה אחת
 ('400000004', 'FT001'),
@@ -722,11 +664,6 @@ INSERT INTO FlightCrew_Pilots (Pilot_id, Flight_id) VALUES
 ('400000013','FT009');
 
 
-
---------------------------------------------------
--- FLIGHT CREW – ATTENDANTS
--- Long-haul flights (F003, F004) use only certified attendants (first 8)
---------------------------------------------------
 INSERT INTO FlightCrew_Attendants (Attendant_id, Flight_id) VALUES
 -- F001 (small) – 3 attendants
 ('500000007', 'FT001'),
@@ -783,7 +720,6 @@ INSERT INTO FlightCrew_Attendants (Attendant_id, Flight_id) VALUES
 ('500000026', 'FT009');
 
 
------------------ QUERY 1 -----------------
 /* Report 1: Average load factor of flights that actually took place */
 SELECT
     f.Flight_id,
@@ -798,7 +734,6 @@ WHERE f.Status = 'Completed'
 GROUP BY f.Dep_DateTime, f.Flight_id;
 #GROUP BY f.Dep_DateTime, f.Arr_DateTime, f.Flight_id;
 
------------------ QUERY 2 -----------------
 /* Report 2: Revenue by Aircraft Size, Manufacturer and Seat Class */
 
 /*SELECT
@@ -864,7 +799,6 @@ LEFT JOIN Orders o ON o.Order_code = t.Order_code
 GROUP BY a.Size, a.Manufacturer, s.Seat_Class
 ORDER BY a.Size, a.Manufacturer, s.Seat_Class;
 
------------------ QUERY 3 -----------------
 /* Report 3: Cumulative flight hours per employee, separated into long and short flights(long flight = DurationMinutes > 360) */
 #PILOTS
 /*SELECT
@@ -932,7 +866,6 @@ ORDER BY Employee_Type, Full_Name;
 
 
 
------------------ QUERY 4 -----------------
 /* Report 4: Cancellation rate of purchases per month */
 SELECT
     DATE_FORMAT(Order_Date, '%Y-%m') AS YearMonth,          -- e.g. 2025-01
@@ -943,7 +876,6 @@ FROM Orders
 GROUP BY DATE_FORMAT(Order_Date, '%Y-%m')
 ORDER BY YearMonth;
 
------------------ QUERY 5 -----------------
 /*  Report 5 - Monthly activity per aircraft
     - Flights_Completed  : # of flights actually flown
     - Flights_Cancelled  : # of cancelled flights
