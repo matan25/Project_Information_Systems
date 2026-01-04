@@ -35,6 +35,11 @@ def _compute_arrival(dep_dt: datetime, duration_minutes: int) -> datetime:
 def _get_flight_header(cursor, flight_id):
     """
     Load basic info about a flight, including computed arrival time.
+    Also annotates the flight with:
+      - Dep_str / Arr_str: formatted strings
+      - Arr_DateTime: computed arrival datetime
+      - Is_Long_Route: True iff duration is strictly greater than
+        LONG_FLIGHT_THRESHOLD_MINUTES (i.e., > 6 hours, not including 6).
     """
     cursor.execute(
         """
@@ -62,14 +67,22 @@ def _get_flight_header(cursor, flight_id):
         flight["Arr_DateTime"] = arr_dt
         flight["Dep_str"] = dep_dt.strftime("%Y-%m-%d %H:%M")
         flight["Arr_str"] = arr_dt.strftime("%Y-%m-%d %H:%M")
-        # האם הטיסה מוגדרת כ־Long-haul
-        flight["Is_Long_Route"] = duration >= LONG_FLIGHT_THRESHOLD_MINUTES
+        # Long-haul route: strictly greater than the threshold (more than 6 hours)
+        flight["Is_Long_Route"] = duration > LONG_FLIGHT_THRESHOLD_MINUTES
     return flight
 
 
 def _required_crew_for_flight(flight):
     """
     Return required numbers of pilots and attendants according to aircraft size.
+
+    Rules:
+      - Small/Medium aircraft:
+          * 2 pilots
+          * 3 attendants
+      - Large aircraft:
+          * 3 pilots
+          * 6 attendants
     """
     size = flight.get("Aircraft_Size", "Small")
     if size == "Large":
@@ -80,17 +93,19 @@ def _required_crew_for_flight(flight):
 def _load_available_crew(cursor, flight):
     """
     Return pilots / attendants that:
-    * have no time conflicts with other flights, and
-    * whose last non-cancelled flight (if any) lands at the origin airport
-      of the current flight, and
-    * whose first non-cancelled future flight (if any) departs from the
-      destination airport of the current flight.
+      * have no time conflicts with other flights, and
+      * whose last non-cancelled flight (if any) lands at the origin airport
+        of the current flight, and
+      * whose first non-cancelled future flight (if any) departs from the
+        destination airport of the current flight.
 
-    בנוסף:
-    * אם הטיסה Long-haul (משך ≥ LONG_FLIGHT_THRESHOLD_MINUTES) –
-      נבחרים רק אנשי צוות שמסומנים COALESCE(Long_Haul_Certified, 0) = 1.
-    * אם העמודה Long_Haul_Certified לא קיימת – יש fallback לשאילתא
-      הישנה בלי התנאי הזה (כדי שלא תהיה קריסה).
+    Additional rules:
+      * If the route is long-haul (duration strictly greater than
+        LONG_FLIGHT_THRESHOLD_MINUTES) – we only select crew members with
+        COALESCE(Long_Haul_Certified, 0) = 1.
+      * If the Long_Haul_Certified column does not exist in the DB schema –
+        we automatically fall back to the original queries without this
+        condition, to avoid runtime errors.
     """
     dep_dt = flight["Dep_DateTime"]
     arr_dt = flight["Arr_DateTime"]
@@ -184,7 +199,7 @@ def _load_available_crew(cursor, flight):
         arr_dt,
     )
 
-    # fallback – השאילתא המקורית בלי Long_Haul_Certified
+    # Fallback – original query without Long_Haul_Certified condition
     pilot_sql_fallback = """
         SELECT p.Pilot_id, p.First_name, p.Last_name
         FROM Pilots p
@@ -248,7 +263,7 @@ def _load_available_crew(cursor, flight):
           )
         ORDER BY p.Last_name, p.First_name
     """
-    pilot_params_fallback = pilot_params_long[1:]  # בלי long_flag
+    pilot_params_fallback = pilot_params_long[1:]  # without long_flag
 
     try:
         cursor.execute(pilot_sql_long, pilot_params_long)
@@ -342,7 +357,7 @@ def _load_available_crew(cursor, flight):
         arr_dt,
     )
 
-    # fallback – השאילתא המקורית בלי Long_Haul_Certified
+    # Fallback – original query without Long_Haul_Certified condition
     attendant_sql_fallback = """
         SELECT fa.Attendant_id, fa.First_name, fa.Last_name
         FROM FlightAttendants fa
@@ -479,7 +494,7 @@ def manager_flight_crew(flight_id):
             flash("Flight not found.", "error")
             return redirect(url_for("main.manager_flights"))
 
-        # אין שיבוץ צוות לטיסה שבוטלה / הושלמה
+        # No crew assignment for cancelled or completed flights
         if flight["Status"] in ("Cancelled", "Completed"):
             flash("This flight is not active and its crew cannot be changed.", "error")
             return redirect(url_for("main.manager_flights"))
@@ -487,7 +502,8 @@ def manager_flight_crew(flight_id):
         required_pilots, required_attendants = _required_crew_for_flight(flight)
         pilots, attendants = _load_available_crew(cursor, flight)
 
-        # Safety net: אם אין מספיק אנשי צוות זמינים לפי כל החוקים – אי אפשר להמשיך
+        # Safety net: if there are not enough eligible crew members,
+        # prevent continuing and send the manager back to the edit screen.
         if len(pilots) < required_pilots or len(attendants) < required_attendants:
             flash(
                 "This flight currently does not have enough eligible crew members "

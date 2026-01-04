@@ -439,12 +439,13 @@ def _has_enough_crew_for_window(
       depart from the destination airport of the new flight).
 
     *** IMPORTANT ***
-    For long-haul routes (Duration >= LONG_FLIGHT_THRESHOLD_MINUTES), we require:
+    For long-haul routes (Duration > LONG_FLIGHT_THRESHOLD_MINUTES), we require:
       - Pilots with Long_Haul_Certified = 1
       - Attendants with Long_Haul_Certified = 1
 
-    If העמודה Long_Haul_Certified *לא קיימת* ב־DB – יש fallback אוטומטי
-    לשאילתות הישנות בלי התנאי הזה, כדי שלא תהיה קריסה.
+    If the column Long_Haul_Certified does not exist in the DB – we fall back
+    automatically to the older queries without this condition, so the app
+    will not crash due to schema differences.
 
     ignore_flight_id:
       - None          => new flight – do not ignore any existing flight.
@@ -455,10 +456,10 @@ def _has_enough_crew_for_window(
     current_flight_id = ignore_flight_id if ignore_flight_id is not None else "__NEW__"
 
     duration_minutes = int((arr_dt - dep_dt).total_seconds() // 60)
-    is_long_route = duration_minutes >= LONG_FLIGHT_THRESHOLD_MINUTES
+    is_long_route = duration_minutes > LONG_FLIGHT_THRESHOLD_MINUTES
     long_flag = 1 if is_long_route else 0
 
-    # --- Pilots: with Long_Haul_Certified, עם fallback אם יש שגיאת סכמה ---
+    # --- Pilots: with Long_Haul_Certified, with fallback if schema errors occur ---
 
     pilot_sql_long = """
         SELECT COUNT(*) AS cnt
@@ -538,7 +539,7 @@ def _has_enough_crew_for_window(
         arr_dt,
     )
 
-    # fallback – השאילתה הישנה בלי Long_Haul_Certified
+    # Fallback – same query without Long_Haul_Certified condition
     pilot_sql_fallback = """
         SELECT COUNT(*) AS cnt
         FROM Pilots p
@@ -598,7 +599,7 @@ def _has_enough_crew_for_window(
               )
           )
     """
-    pilot_params_fallback = pilot_params_long[1:]  # בלי long_flag
+    pilot_params_fallback = pilot_params_long[1:]  # without long_flag
 
     try:
         cursor.execute(pilot_sql_long, pilot_params_long)
@@ -608,7 +609,7 @@ def _has_enough_crew_for_window(
         cursor.execute(pilot_sql_fallback, pilot_params_fallback)
         pilots_available = int(cursor.fetchone()["cnt"])
 
-    # --- Attendants: אותה לוגיקה עם fallback ---
+    # --- Attendants: same logic as for pilots, with fallback ---
 
     attendant_sql_long = """
         SELECT COUNT(*) AS cnt
@@ -789,7 +790,7 @@ def _filter_aircrafts_for_window(
         return [ac for ac in all_aircrafts if int(ac.get("SeatCount", 0) or 0) > 0]
 
     arr_dt = _compute_arrival(dep_dt, duration_minutes)
-    is_long = int(duration_minutes) >= LONG_FLIGHT_THRESHOLD_MINUTES
+    is_long = int(duration_minutes) > LONG_FLIGHT_THRESHOLD_MINUTES
 
     origin_airport = None
     dest_airport = None
@@ -944,7 +945,7 @@ def _auto_update_completed(cursor, now_dt):
         WHERE f.Status = 'Active'
           AND DATE_ADD(f.Dep_DateTime, INTERVAL r.Duration_Minutes MINUTE) < %s
         """,
-        (now_dt,   ),
+        (now_dt,),
     )
 
 
@@ -1052,9 +1053,12 @@ def _auto_update_full_occupied_all(cursor):
 def _cleanup_cancelled_flights_crew(cursor):
     """
     Sync helper:
-    אם שינית ידנית ב-SQL את Status של טיסה ל-'Cancelled',
-    הפונקציה הזו מבטיחה שהצוות האוירי לא יישאר משויך לטיסה.
-    (הקריאות הן idempotent – בטוח להריץ כל פעם.)
+
+    If you changed the Status of a flight manually in SQL to 'Cancelled',
+    this helper guarantees that the flight crew is not left assigned
+    to that flight.
+
+    (The calls are idempotent – safe to execute on every request.)
     """
     # Pilots
     cursor.execute(
@@ -1277,7 +1281,8 @@ def manager_view_flight(flight_id):
         flight["Arr_str"] = arr_dt.strftime("%Y-%m-%d %H:%M")
         flight["Arr_DateTime"] = arr_dt
 
-        long_route = duration >= LONG_FLIGHT_THRESHOLD_MINUTES
+        # long_route: only duration strictly greater than the threshold (more than 6 hours)
+        long_route = duration > LONG_FLIGHT_THRESHOLD_MINUTES
 
         cursor.execute(
             """
@@ -1456,7 +1461,7 @@ def manager_new_flight():
         duration_minutes = int(route_row["Duration_Minutes"])
         origin_airport = route_row["Origin_Airport_code"]
         dest_airport = route_row["Destination_Airport_code"]
-        is_long = duration_minutes >= LONG_FLIGHT_THRESHOLD_MINUTES
+        is_long = duration_minutes > LONG_FLIGHT_THRESHOLD_MINUTES
         arr_dt = _compute_arrival(dep_dt, duration_minutes)
 
         # Filter available aircrafts for this window (including crew check with location)
@@ -1653,9 +1658,10 @@ def manager_edit_flight(flight_id):
 
     SPECIAL CASE:
     - When cancelling a flight (either via status='Cancelled' or via the
-      dedicated "Cancel this flight" button), מתבצע רק שינוי סטטוס
-      ל-'Cancelled' + ניקוי הצוות, בלי בדיקות חפיפה/צוות/מיקום,
-      ורק עם כלל ה־72 שעות – לפי Dep_DateTime הקיים ב־DB.
+      dedicated "Cancel this flight" button), only a status change to 'Cancelled'
+      is performed and the crew is cleared, without overlap/crew/location checks,
+      and only if the 72-hours rule holds – based on the Dep_DateTime currently
+      stored in the DB.
     """
     if not _require_manager():
         return redirect(url_for("auth.login"))
@@ -1698,9 +1704,10 @@ def manager_edit_flight(flight_id):
             return redirect(url_for("main.manager_flights"))
 
         duration_minutes = int(flight["Duration_Minutes"])
-        long_route = duration_minutes >= LONG_FLIGHT_THRESHOLD_MINUTES
+        # long_route: only duration strictly greater than the threshold (more than 6 hours)
+        long_route = duration_minutes > LONG_FLIGHT_THRESHOLD_MINUTES
 
-        # מידע על המטוס הנוכחי (להצגה בלבד)
+        # Current aircraft info (for display only)
         current_aircraft = None
         for ac in all_aircrafts:
             if ac["Aircraft_id"] == flight["Aircraft_id"]:
@@ -1708,7 +1715,7 @@ def manager_edit_flight(flight_id):
                 break
 
         # Base aircrafts that satisfy time/location/crew for CURRENT dep time
-        # (נשאר לחיזוק ולשימוש פנימי, גם אם לא מאפשרים שינוי מטוס)
+        # (Used for internal validation, even though aircraft cannot be changed anymore)
         base_filtered_aircrafts = _filter_aircrafts_for_window(
             cursor,
             all_aircrafts,
@@ -1727,10 +1734,10 @@ def manager_edit_flight(flight_id):
         )
 
         if request.method == "POST":
-            # האם המשתמש לחץ על כפתור "Cancel this flight"
+            # Did the user click the dedicated "Cancel this flight" button?
             cancel_clicked = request.form.get("cancel_flight") == "1"
 
-            # המטוס נעול – מתעלמים מכל דבר שמגיע מהטופס
+            # Aircraft is locked – ignore any aircraft selection from the form
             aircraft_id = flight["Aircraft_id"]
             dep_str = request.form.get("dep_datetime")
 
@@ -1751,7 +1758,8 @@ def manager_edit_flight(flight_id):
 
             # === SPECIAL EARLY PATH: cancellation (button OR status) ===
             if cancel_clicked or new_status == "Cancelled":
-                # ביטול נעשה לפי זמן היציאה הקיים במערכת – אי אפשר "לעקוף" את כלל 72 השעות
+                # Cancellation is based on the existing Dep_DateTime in DB –
+                # manager cannot bypass the 72-hours rule by editing the time first.
                 dep_dt_db = flight["Dep_DateTime"]
                 time_to_dep = dep_dt_db - now
                 if time_to_dep < timedelta(hours=72):
@@ -1771,7 +1779,7 @@ def manager_edit_flight(flight_id):
                         current_aircraft=current_aircraft,
                     )
 
-                # שינוי סטטוס בלבד + ניקוי צוות
+                # Status change only + clear crew assignments
                 cursor.execute(
                     """
                     UPDATE Flights
@@ -1862,7 +1870,7 @@ def manager_edit_flight(flight_id):
 
             arr_dt = _compute_arrival(dep_dt, duration_minutes)
 
-            # בודקים שהמטוס הנוכחי עדיין זמין לחלון החדש
+            # Check that the current aircraft is still valid for the new window
             if not any(ac["Aircraft_id"] == aircraft_id for ac in aircrafts_for_form):
                 flash(
                     "The current aircraft is not available for the new departure time "
@@ -1885,7 +1893,7 @@ def manager_edit_flight(flight_id):
                     current_aircraft=current_aircraft,
                 )
 
-            # אימות גודל המטוס למסלול ארוך – לוגיקה נשארת
+            # Validate aircraft size for long-haul route – logic unchanged
             cursor.execute(
                 "SELECT Size, Model FROM Aircrafts WHERE Aircraft_id = %s",
                 (aircraft_id,),
@@ -1946,7 +1954,7 @@ def manager_edit_flight(flight_id):
                     current_aircraft=current_aircraft,
                 )
 
-            # Aircraft time-conflict check (תמיד על התאריך החדש)
+            # Aircraft time-conflict check (always on the updated time)
             if _aircraft_has_conflict(cursor, aircraft_id, dep_dt, arr_dt, flight_id):
                 flash("This aircraft is already assigned to another overlapping flight.", "error")
                 flight["dep_value"] = dep_dt.strftime("%Y-%m-%dT%H:%M")
@@ -2025,7 +2033,7 @@ def manager_edit_flight(flight_id):
                     current_aircraft=current_aircraft,
                 )
 
-            # עדכון: משנים רק זמן וסטטוס, המטוס לא משתנה
+            # Update: change only departure time and status; aircraft does not change
             cursor.execute(
                 """
                 UPDATE Flights

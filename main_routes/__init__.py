@@ -118,7 +118,7 @@ def _get_default_seat_price(seat_class: str) -> float:
 
 # VERY IMPORTANT: import submodules so their @main_bp.route
 # decorators actually run and register routes.
-from . import (  # noqa: E402,F401
+from . import (
     home,
     flights,
     crew,
@@ -127,5 +127,5 @@ from . import (  # noqa: E402,F401
     manager_reports,
     aircrafts,
     staff,
-    seats,  # NEW: seat-pricing & seat-status management routes
+    seats
 )
