@@ -99,7 +99,7 @@ def manager_flight_seats(flight_id):
                 try:
                     price = float(price_str)
                 except ValueError:
-                    flash("Invalid price value for one of the seats.", "error")
+                    flash("Invalid price value for at least one of the seats.", "error")
                     return redirect(url_for("main.manager_flight_seats", flight_id=flight_id))
 
                 if price < 0:
