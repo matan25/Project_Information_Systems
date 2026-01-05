@@ -197,15 +197,20 @@ def _load_routes_and_aircrafts():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
+        # Routes + airport cities (for showing "TLV (Tel Aviv) → LHR (London)")
         cursor.execute(
             """
             SELECT
-                Route_id,
-                Origin_Airport_code,
-                Destination_Airport_code,
-                Duration_Minutes
-            FROM Flight_Routes
-            ORDER BY Origin_Airport_code, Destination_Airport_code
+                fr.Route_id,
+                fr.Origin_Airport_code,
+                fr.Destination_Airport_code,
+                fr.Duration_Minutes,
+                ao.City AS Origin_City,
+                ad.City AS Destination_City
+            FROM Flight_Routes fr
+            JOIN Airports ao ON ao.Airport_code = fr.Origin_Airport_code
+            JOIN Airports ad ON ad.Airport_code = fr.Destination_Airport_code
+            ORDER BY fr.Origin_Airport_code, fr.Destination_Airport_code
             """
         )
         routes = cursor.fetchall()

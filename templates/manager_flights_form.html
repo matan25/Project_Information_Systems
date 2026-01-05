@@ -191,7 +191,8 @@
           {% for r in routes %}
             <option value="{{ r.Route_id }}"
                     {% if current_route_id == r.Route_id %}selected{% endif %}>
-              {{ r.Origin_Airport_code }} → {{ r.Destination_Airport_code }}
+              {{ r.Origin_Airport_code }} ({{ r.Origin_City }}) →
+              {{ r.Destination_Airport_code }} ({{ r.Destination_City }})
               ({{ r.Duration_Minutes }} min)
             </option>
           {% endfor %}
