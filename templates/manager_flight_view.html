@@ -16,7 +16,7 @@
           Status: <strong>{{ flight.Status }}</strong>
           {% if long_route %}
             <span class="field-hint" style="display:block; margin-top:6px;">
-              Long-haul: duration ≥ {{ LONG_FLIGHT_THRESHOLD_MINUTES }} minutes
+              Long-haul: duration > {{ LONG_FLIGHT_THRESHOLD_MINUTES }} minutes
               (arrival time is derived from departure time and route duration)
             </span>
           {% endif %}
