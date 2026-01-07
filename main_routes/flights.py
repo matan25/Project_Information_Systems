@@ -86,16 +86,31 @@ def _aircraft_location_ok(
     """
     Enforce aircraft positioning rule:
 
-    - An aircraft must start a flight from the airport where it last landed.
-    - It must also land at the airport from which its next scheduled flight
-      will depart.
-    - The very first non-cancelled flight of an aircraft has no "starting"
-      location constraint.
-    - Cancelled flights are ignored for positioning.
+    - For NEW flights:
+        * An aircraft must start a flight from the airport where it last landed.
+        * It must also land at the airport from which its next scheduled flight
+          will depart.
+        * The very first non-cancelled flight of an aircraft has no "starting"
+          location constraint.
+        * Cancelled flights are ignored for positioning.
+
+    - For EXISTING flights (edit mode, ignore_flight_id is not None):
+        * We assume the company already arranged repositioning of the aircraft
+          between airports if needed, exactly כמו אנשי הצוות.
+        * לכן בעריכת טיסה קיימת איננו חוסמים בגלל כלל הלוקיישן – רק חפיפות
+          זמן נבדקות בפונקציות אחרות.
     """
     if not aircraft_id or not route_id or dep_dt is None or duration_minutes is None:
         # Defensive fallback – do not block if data is incomplete
         return True
+
+    # ---- Relaxed rule for existing flights (edit mode) ----
+    if ignore_flight_id is not None:
+        # עריכת טיסה קיימת: מניחים שהמטוס כבר רולוקייט ליעד הנדרש.
+        # לא מפעילים כלל לוקיישן כדי לא "לשבור שרשרת" אחרי ביטולים באמצע.
+        return True
+
+    # From here on – strict rule (used for new flights only)
 
     # Get origin/destination of the route for the new / edited flight
     cursor.execute(
@@ -789,6 +804,9 @@ def _filter_aircrafts_for_window(
       * if check_crew=True – there must be enough available crew members
         (pilots + attendants) for this aircraft size and window,
         with the same location rules as in the crew module.
+
+    הערה: בעת עריכת טיסה קיימת (ignore_flight_id לא None) כלל הלוקיישן
+    בפועל אינו נחסם למטוס – אנחנו מניחים רילוקציה – אבל חפיפות זמן עדיין נבדקות.
     """
     if not dep_dt or duration_minutes is None:
         # Even in this fallback case, keep only aircrafts with seats
@@ -1527,7 +1545,7 @@ def manager_new_flight():
             flash("This aircraft is already assigned to another overlapping flight.", "error")
             return _render_form(temp_flight, aircrafts=aircrafts_filtered, freeze_schedule=True)
 
-        # Aircraft positioning rule
+        # Aircraft positioning rule (STRICT for new flights)
         if not _aircraft_location_ok(
             cursor,
             aircraft_id,
@@ -1977,7 +1995,9 @@ def manager_edit_flight(flight_id):
                     current_aircraft=current_aircraft,
                 )
 
-            # Aircraft positioning rule
+            # Aircraft positioning rule:
+            # בעריכת טיסה קיימת (ignore_flight_id=flight_id) כלל הלוקיישן מרוכך
+            # בתוך _aircraft_location_ok – לא יחסום בגלל ביטולים באמצע השרשרת.
             if not _aircraft_location_ok(
                 cursor,
                 aircraft_id,
