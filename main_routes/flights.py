@@ -449,38 +449,131 @@ def _has_enough_crew_for_window(
     ignore_flight_id=None,
 ) -> bool:
     """
-    Check if there are enough free pilots & attendants for this flight window,
-    including the crew-location rules:
+    Check if there are enough free pilots & attendants for this flight window.
 
-    - time-overlap rule (no overlapping flights),
-    - previous-flight location rule (last non-cancelled flight, if any, must land
-      at the origin airport of the new flight),
-    - next-flight location rule (first future non-cancelled flight, if any, must
-      depart from the destination airport of the new flight).
+    מצב NEW (ignore_flight_id is None):
+        - אין חפיפות זמן
+        - כלל לוקיישן מלא (טיסה קודמת/באה, לא Cancelled)
+        - long-haul: דורש Long_Haul_Certified=1 אצל צוות
 
-    *** IMPORTANT ***
-    For long-haul routes (Duration > LONG_FLIGHT_THRESHOLD_MINUTES), we require:
-      - Pilots with Long_Haul_Certified = 1
-      - Attendants with Long_Haul_Certified = 1
-
-    If the column Long_Haul_Certified does not exist in the DB – we fall back
-    automatically to the older queries without this condition, so the app
-    will not crash due to schema differences.
-
-    ignore_flight_id:
-      - None          => new flight – do not ignore any existing flight.
-      - flight_id str => edit mode – ignore this flight when checking conflicts.
+    מצב EDIT (ignore_flight_id not None):
+        - אין חפיפות זמן
+        - אין כלל לוקיישן (מניחים רילוקציה אחרי ביטולים/שינויים)
+        - long-haul: עדיין דורש Long_Haul_Certified=1 אם העמודה קיימת
     """
     req_pilots, req_attendants = _required_crew_for_size(aircraft_size)
-
-    current_flight_id = ignore_flight_id if ignore_flight_id is not None else "__NEW__"
 
     duration_minutes = int((arr_dt - dep_dt).total_seconds() // 60)
     is_long_route = duration_minutes > LONG_FLIGHT_THRESHOLD_MINUTES
     long_flag = 1 if is_long_route else 0
 
-    # --- Pilots: with Long_Haul_Certified, with fallback if schema errors occur ---
+    edit_mode = ignore_flight_id is not None
+    current_flight_id = ignore_flight_id if edit_mode else "__NEW__"
 
+    # ---------- EDIT MODE: בודק רק חפיפות זמן (ללא לוקיישן) ----------
+    if edit_mode:
+        # --- Pilots: זמן + תעודת long-haul (אם נדרש) ---
+        pilot_sql_long = """
+            SELECT COUNT(*) AS cnt
+            FROM Pilots p
+            WHERE
+              (%s = 0 OR COALESCE(p.Long_Haul_Certified, 0) = 1)
+              AND NOT EXISTS (
+                SELECT 1
+                FROM FlightCrew_Pilots fcp
+                JOIN Flights       f2 ON f2.Flight_id = fcp.Flight_id
+                JOIN Flight_Routes r2 ON f2.Route_id  = r2.Route_id
+                WHERE fcp.Pilot_id = p.Pilot_id
+                  AND fcp.Flight_id <> %s
+                  AND NOT (
+                        DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
+                    OR  f2.Dep_DateTime >= %s
+                  )
+              )
+        """
+        pilot_params_long = (long_flag, current_flight_id, dep_dt, arr_dt)
+
+        pilot_sql_fallback = """
+            SELECT COUNT(*) AS cnt
+            FROM Pilots p
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM FlightCrew_Pilots fcp
+                JOIN Flights       f2 ON f2.Flight_id = fcp.Flight_id
+                JOIN Flight_Routes r2 ON f2.Route_id  = r2.Route_id
+                WHERE fcp.Pilot_id = p.Pilot_id
+                  AND fcp.Flight_id <> %s
+                  AND NOT (
+                        DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
+                    OR  f2.Dep_DateTime >= %s
+                  )
+            )
+        """
+        pilot_params_fallback = (current_flight_id, dep_dt, arr_dt)
+
+        try:
+            cursor.execute(pilot_sql_long, pilot_params_long)
+            pilots_available = int(cursor.fetchone()["cnt"])
+        except Error as e:
+            print("DB error in _has_enough_crew_for_window (pilots, EDIT, LongHaul):", e)
+            cursor.execute(pilot_sql_fallback, pilot_params_fallback)
+            pilots_available = int(cursor.fetchone()["cnt"])
+
+        # --- Attendants: זמן + תעודת long-haul (אם נדרש) ---
+        attendant_sql_long = """
+            SELECT COUNT(*) AS cnt
+            FROM FlightAttendants fa
+            WHERE
+              (%s = 0 OR COALESCE(fa.Long_Haul_Certified, 0) = 1)
+              AND NOT EXISTS (
+                SELECT 1
+                FROM FlightCrew_Attendants fca
+                JOIN Flights       f2 ON f2.Flight_id = fca.Flight_id
+                JOIN Flight_Routes r2 ON f2.Route_id  = r2.Route_id
+                WHERE fca.Attendant_id = fa.Attendant_id
+                  AND fca.Flight_id <> %s
+                  AND NOT (
+                        DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
+                    OR  f2.Dep_DateTime >= %s
+                  )
+              )
+        """
+        attendant_params_long = (long_flag, current_flight_id, dep_dt, arr_dt)
+
+        attendant_sql_fallback = """
+            SELECT COUNT(*) AS cnt
+            FROM FlightAttendants fa
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM FlightCrew_Attendants fca
+                JOIN Flights       f2 ON f2.Flight_id = fca.Flight_id
+                JOIN Flight_Routes r2 ON f2.Route_id  = r2.Route_id
+                WHERE fca.Attendant_id = fa.Attendant_id
+                  AND fca.Flight_id <> %s
+                  AND NOT (
+                        DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
+                    OR  f2.Dep_DateTime >= %s
+                  )
+            )
+        """
+        attendant_params_fallback = (current_flight_id, dep_dt, arr_dt)
+
+        try:
+            cursor.execute(attendant_sql_long, attendant_params_long)
+            attendants_available = int(cursor.fetchone()["cnt"])
+        except Error as e:
+            print("DB error in _has_enough_crew_for_window (attendants, EDIT, LongHaul):", e)
+            cursor.execute(attendant_sql_fallback, attendant_params_fallback)
+            attendants_available = int(cursor.fetchone()["cnt"])
+
+        return (
+            pilots_available >= req_pilots
+            and attendants_available >= req_attendants
+        )
+
+    # ---------- NEW FLIGHT MODE: לוקיישן + זמן (הקוד המקורי שלך) ----------
+
+    # Pilots
     pilot_sql_long = """
         SELECT COUNT(*) AS cnt
         FROM Pilots p
@@ -559,7 +652,6 @@ def _has_enough_crew_for_window(
         arr_dt,
     )
 
-    # Fallback – same query without Long_Haul_Certified condition
     pilot_sql_fallback = """
         SELECT COUNT(*) AS cnt
         FROM Pilots p
@@ -568,7 +660,7 @@ def _has_enough_crew_for_window(
             SELECT 1
             FROM FlightCrew_Pilots fcp
             JOIN Flights       f2 ON f2.Flight_id = fcp.Flight_id
-            JOIN Flight_Routes r2 ON f2.Route_id  = r2.Route_Id
+            JOIN Flight_Routes r2 ON f2.Route_Id  = r2.Route_Id
             WHERE fcp.Pilot_id = p.Pilot_id
               AND fcp.Flight_id <> %s
               AND NOT (
@@ -619,18 +711,17 @@ def _has_enough_crew_for_window(
               )
           )
     """
-    pilot_params_fallback = pilot_params_long[1:]  # without long_flag
+    pilot_params_fallback = pilot_params_long[1:]  # בלי long_flag
 
     try:
         cursor.execute(pilot_sql_long, pilot_params_long)
         pilots_available = int(cursor.fetchone()["cnt"])
     except Error as e:
-        print("DB error in _has_enough_crew_for_window (pilots, LongHaul):", e)
+        print("DB error in _has_enough_crew_for_window (pilots, NEW, LongHaul):", e)
         cursor.execute(pilot_sql_fallback, pilot_params_fallback)
         pilots_available = int(cursor.fetchone()["cnt"])
 
-    # --- Attendants: same logic as for pilots, with fallback ---
-
+    # Attendants – כמו אצל טייסים, כולל לוקיישן
     attendant_sql_long = """
         SELECT COUNT(*) AS cnt
         FROM FlightAttendants fa
@@ -774,7 +865,7 @@ def _has_enough_crew_for_window(
         cursor.execute(attendant_sql_long, attendant_params_long)
         attendants_available = int(cursor.fetchone()["cnt"])
     except Error as e:
-        print("DB error in _has_enough_crew_for_window (attendants, LongHaul):", e)
+        print("DB error in _has_enough_crew_for_window (attendants, NEW, LongHaul):", e)
         cursor.execute(attendant_sql_fallback, attendant_params_fallback)
         attendants_available = int(cursor.fetchone()["cnt"])
 

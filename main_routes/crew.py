@@ -77,19 +77,17 @@ def _required_crew_for_flight(flight):
 def _load_available_crew(cursor, flight):
     """
     Return pilots / attendants that:
-      * have no time conflicts with other flights, and
-      * whose last non-cancelled flight (if any) lands at the origin airport
-        of the current flight, and
-      * whose first non-cancelled future flight (if any) departs from the
-        destination airport of the current flight.
 
-    Additional rules:
-      * If the route is long-haul (duration strictly greater than
-        LONG_FLIGHT_THRESHOLD_MINUTES) – we only select crew members with
-        COALESCE(Long_Haul_Certified, 0) = 1.
-      * If the Long_Haul_Certified column does not exist in the DB schema –
-        we automatically fall back to the original queries without this
-        condition, to avoid runtime errors.
+      * אין להם חפיפות בזמן עם טיסות אחרות
+      * במסלול ארוך – חייבים להיות Long_Haul_Certified = 1 (אם העמודה קיימת)
+
+    שים לב: כאן *בכוונה* לא נאכפים יותר כללי לוקיישן (שדה מוצא/יעד),
+    מתוך הנחה שהחברה דואגת לרילוקציה של הצוות בין שדות גם אם יש
+    ביטולים אחת או יותר בין טיסות.
+
+    עדיין:
+      * טיסות מבוטלות אינן נחשבות בחפיפות (הצוות נמחק מטיסות Cancelled
+        ע"י _cleanup_cancelled_flights_crew).
     """
     dep_dt = flight["Dep_DateTime"]
     arr_dt = flight["Arr_DateTime"]
@@ -104,11 +102,8 @@ def _load_available_crew(cursor, flight):
         SELECT p.Pilot_id, p.First_name, p.Last_name
         FROM Pilots p
         WHERE
-          -- Long-haul qualification (only for long routes)
           (%s = 0 OR COALESCE(p.Long_Haul_Certified, 0) = 1)
-          AND
-          -- Time-overlap constraint
-          NOT EXISTS (
+          AND NOT EXISTS (
             SELECT 1
             FROM FlightCrew_Pilots fcp
             JOIN Flights       f2 ON f2.Flight_id = fcp.Flight_id
@@ -118,50 +113,6 @@ def _load_available_crew(cursor, flight):
               AND NOT (
                     DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
                 OR  f2.Dep_DateTime >= %s
-              )
-          )
-          AND
-          -- Previous-flight location rule
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Pilots fprev
-            JOIN Flights       f2 ON f2.Flight_id = fprev.Flight_id
-            JOIN Flight_Routes r2 ON r2.Route_id  = f2.Route_id
-            WHERE fprev.Pilot_id = p.Pilot_id
-              AND fprev.Flight_id <> %s
-              AND f2.Dep_DateTime < %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Destination_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MAX(f3f.Dep_DateTime)
-                    FROM FlightCrew_Pilots f3
-                    JOIN Flights f3f ON f3f.Flight_id = f3.Flight_id
-                    WHERE f3.Pilot_id = p.Pilot_id
-                      AND f3.Flight_id <> %s
-                      AND f3f.Dep_DateTime < %s
-                      AND f3f.Status <> 'Cancelled'
-              )
-          )
-          AND
-          -- Next-flight location rule
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Pilots fnext
-            JOIN Flights       f2 ON f2.Flight_id = fnext.Flight_id
-            JOIN Flight_Routes r2 ON r2.Route_id  = f2.Route_id
-            WHERE fnext.Pilot_id = p.Pilot_id
-              AND fnext.Flight_id <> %s
-              AND f2.Dep_DateTime > %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Origin_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MIN(f3f.Dep_DateTime)
-                    FROM FlightCrew_Pilots f3
-                    JOIN Flights f3f ON f3f.Flight_id = f3.Flight_id
-                    WHERE f3.Pilot_id = p.Pilot_id
-                      AND f3.Flight_id <> %s
-                      AND f3f.Dep_DateTime > %s
-                      AND f3f.Status <> 'Cancelled'
               )
           )
         ORDER BY p.Last_name, p.First_name
@@ -171,23 +122,12 @@ def _load_available_crew(cursor, flight):
         current_flight_id,
         dep_dt,
         arr_dt,
-        current_flight_id,
-        dep_dt,
-        origin_airport,
-        current_flight_id,
-        dep_dt,
-        current_flight_id,
-        arr_dt,
-        dest_airport,
-        current_flight_id,
-        arr_dt,
     )
 
     pilot_sql_fallback = """
         SELECT p.Pilot_id, p.First_name, p.Last_name
         FROM Pilots p
         WHERE
-          -- Time-overlap constraint
           NOT EXISTS (
             SELECT 1
             FROM FlightCrew_Pilots fcp
@@ -198,50 +138,6 @@ def _load_available_crew(cursor, flight):
               AND NOT (
                     DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
                 OR  f2.Dep_DateTime >= %s
-              )
-          )
-          AND
-          -- Previous-flight location rule
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Pilots fprev
-            JOIN Flights       f2 ON f2.Flight_id = fprev.Flight_id
-            JOIN Flight_Routes r2 ON r2.Route_id  = f2.Route_id
-            WHERE fprev.Pilot_id = p.Pilot_id
-              AND fprev.Flight_id <> %s
-              AND f2.Dep_DateTime < %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Destination_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MAX(f3f.Dep_DateTime)
-                    FROM FlightCrew_Pilots f3
-                    JOIN Flights f3f ON f3f.Flight_id = f3.Flight_id
-                    WHERE f3.Pilot_id = p.Pilot_id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime < %s
-                      AND f3f.Status <> 'Cancelled'
-              )
-          )
-          AND
-          -- Next-flight location rule
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Pilots fnext
-            JOIN Flights       f2 ON f2.Flight_Id = fnext.Flight_Id
-            JOIN Flight_Routes r2 ON r2.Route_Id  = f2.Route_Id
-            WHERE fnext.Pilot_Id = p.Pilot_Id
-              AND fnext.Flight_Id <> %s
-              AND f2.Dep_DateTime > %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Origin_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MIN(f3f.Dep_DateTime)
-                    FROM FlightCrew_Pilots f3
-                    JOIN Flights f3f ON f3f.Flight_Id = f3.Flight_Id
-                    WHERE f3.Pilot_Id = p.Pilot_Id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime > %s
-                      AND f3f.Status <> 'Cancelled'
               )
           )
         ORDER BY p.Last_name, p.First_name
@@ -262,8 +158,7 @@ def _load_available_crew(cursor, flight):
         FROM FlightAttendants fa
         WHERE
           (%s = 0 OR COALESCE(fa.Long_Haul_Certified, 0) = 1)
-          AND
-          NOT EXISTS (
+          AND NOT EXISTS (
             SELECT 1
             FROM FlightCrew_Attendants fca
             JOIN Flights       f2 ON f2.Flight_id = fca.Flight_id
@@ -275,64 +170,12 @@ def _load_available_crew(cursor, flight):
                 OR  f2.Dep_DateTime >= %s
               )
           )
-          AND
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Attendants fprev
-            JOIN Flights       f2 ON f2.Flight_id = fprev.Flight_id
-            JOIN Flight_Routes r2 ON r2.Route_id  = f2.Route_id
-            WHERE fprev.Attendant_id = fa.Attendant_id
-              AND fprev.Flight_id <> %s
-              AND f2.Dep_DateTime < %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Destination_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MAX(f3f.Dep_DateTime)
-                    FROM FlightCrew_Attendants f3
-                    JOIN Flights f3f ON f3f.Flight_id = f3.Flight_id
-                    WHERE f3.Attendant_Id = fa.Attendant_Id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime < %s
-                      AND f3f.Status <> 'Cancelled'
-              )
-          )
-          AND
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Attendants fnext
-            JOIN Flights       f2 ON f2.Flight_id = fnext.Flight_id
-            JOIN Flight_Routes r2 ON r2.Route_id  = f2.Route_id
-            WHERE fnext.Attendant_id = fa.Attendant_id
-              AND fnext.Flight_id <> %s
-              AND f2.Dep_DateTime > %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Origin_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MIN(f3f.Dep_DateTime)
-                    FROM FlightCrew_Attendants f3
-                    JOIN Flights f3f ON f3f.Flight_id = f3.Flight_id
-                    WHERE f3.Attendant_Id = fa.Attendant_Id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime > %s
-                      AND f3f.Status <> 'Cancelled'
-              )
-          )
         ORDER BY fa.Last_name, fa.First_name
     """
     attendant_params_long = (
         long_flag,
         current_flight_id,
         dep_dt,
-        arr_dt,
-        current_flight_id,
-        dep_dt,
-        origin_airport,
-        current_flight_id,
-        dep_dt,
-        current_flight_id,
-        arr_dt,
-        dest_airport,
-        current_flight_id,
         arr_dt,
     )
 
@@ -343,55 +186,13 @@ def _load_available_crew(cursor, flight):
           NOT EXISTS (
             SELECT 1
             FROM FlightCrew_Attendants fca
-            JOIN Flights       f2 ON f2.Flight_id = fca.Flight_Id
-            JOIN Flight_Routes r2 ON f2.Route_Id  = r2.Route_Id
-            WHERE fca.Attendant_Id = fa.Attendant_Id
-              AND fca.Flight_Id <> %s
+            JOIN Flights       f2 ON f2.Flight_id = fca.Flight_id
+            JOIN Flight_Routes r2 ON f2.Route_id  = r2.Route_id
+            WHERE fca.Attendant_id = fa.Attendant_id
+              AND fca.Flight_id <> %s
               AND NOT (
                     DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
                 OR  f2.Dep_DateTime >= %s
-              )
-          )
-          AND
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Attendants fprev
-            JOIN Flights       f2 ON f2.Flight_Id = fprev.Flight_Id
-            JOIN Flight_Routes r2 ON r2.Route_Id  = f2.Route_Id
-            WHERE fprev.Attendant_Id = fa.Attendant_Id
-              AND fprev.Flight_Id <> %s
-              AND f2.Dep_DateTime < %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Destination_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MAX(f3f.Dep_DateTime)
-                    FROM FlightCrew_Attendants f3
-                    JOIN Flights f3f ON f3f.Flight_Id = f3.Flight_Id
-                    WHERE f3.Attendant_Id = fa.Attendant_Id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime < %s
-                      AND f3f.Status <> 'Cancelled'
-              )
-          )
-          AND
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Attendants fnext
-            JOIN Flights       f2 ON f2.Flight_Id = fnext.Flight_Id
-            JOIN Flight_Routes r2 ON r2.Route_Id  = f2.Route_Id
-            WHERE fnext.Attendant_Id = fa.Attendant_Id
-              AND fnext.Flight_Id <> %s
-              AND f2.Dep_DateTime > %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Origin_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MIN(f3f.Dep_DateTime)
-                    FROM FlightCrew_Attendants f3
-                    JOIN Flights f3f ON f3f.Flight_Id = f3.Flight_Id
-                    WHERE f3.Attendant_Id = fa.Attendant_Id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime > %s
-                      AND f3f.Status <> 'Cancelled'
               )
           )
         ORDER BY fa.Last_name, fa.First_name
@@ -407,6 +208,7 @@ def _load_available_crew(cursor, flight):
         attendants = cursor.fetchall()
 
     return pilots, attendants
+
 
 
 def _load_current_crew_ids(cursor, flight_id):
