@@ -459,7 +459,7 @@ def _has_enough_crew_for_window(
     מצב EDIT (ignore_flight_id not None):
         - אין חפיפות זמן
         - אין כלל לוקיישן (מניחים רילוקציה אחרי ביטולים/שינויים)
-        - long-haul: עדיין דורש Long_Haul_Certified=1 אם העמודה קיימת
+        - long-haul: עדיין דורש Long_Haul_Certified=1
     """
     req_pilots, req_attendants = _required_crew_for_size(aircraft_size)
 
@@ -493,31 +493,8 @@ def _has_enough_crew_for_window(
         """
         pilot_params_long = (long_flag, current_flight_id, dep_dt, arr_dt)
 
-        pilot_sql_fallback = """
-            SELECT COUNT(*) AS cnt
-            FROM Pilots p
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM FlightCrew_Pilots fcp
-                JOIN Flights       f2 ON f2.Flight_id = fcp.Flight_id
-                JOIN Flight_Routes r2 ON f2.Route_id  = r2.Route_id
-                WHERE fcp.Pilot_id = p.Pilot_id
-                  AND fcp.Flight_id <> %s
-                  AND NOT (
-                        DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
-                    OR  f2.Dep_DateTime >= %s
-                  )
-            )
-        """
-        pilot_params_fallback = (current_flight_id, dep_dt, arr_dt)
-
-        try:
-            cursor.execute(pilot_sql_long, pilot_params_long)
-            pilots_available = int(cursor.fetchone()["cnt"])
-        except Error as e:
-            print("DB error in _has_enough_crew_for_window (pilots, EDIT, LongHaul):", e)
-            cursor.execute(pilot_sql_fallback, pilot_params_fallback)
-            pilots_available = int(cursor.fetchone()["cnt"])
+        cursor.execute(pilot_sql_long, pilot_params_long)
+        pilots_available = int(cursor.fetchone()["cnt"])
 
         # --- Attendants: זמן + תעודת long-haul (אם נדרש) ---
         attendant_sql_long = """
@@ -540,31 +517,8 @@ def _has_enough_crew_for_window(
         """
         attendant_params_long = (long_flag, current_flight_id, dep_dt, arr_dt)
 
-        attendant_sql_fallback = """
-            SELECT COUNT(*) AS cnt
-            FROM FlightAttendants fa
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM FlightCrew_Attendants fca
-                JOIN Flights       f2 ON f2.Flight_id = fca.Flight_id
-                JOIN Flight_Routes r2 ON f2.Route_id  = r2.Route_id
-                WHERE fca.Attendant_id = fa.Attendant_id
-                  AND fca.Flight_id <> %s
-                  AND NOT (
-                        DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
-                    OR  f2.Dep_DateTime >= %s
-                  )
-            )
-        """
-        attendant_params_fallback = (current_flight_id, dep_dt, arr_dt)
-
-        try:
-            cursor.execute(attendant_sql_long, attendant_params_long)
-            attendants_available = int(cursor.fetchone()["cnt"])
-        except Error as e:
-            print("DB error in _has_enough_crew_for_window (attendants, EDIT, LongHaul):", e)
-            cursor.execute(attendant_sql_fallback, attendant_params_fallback)
-            attendants_available = int(cursor.fetchone()["cnt"])
+        cursor.execute(attendant_sql_long, attendant_params_long)
+        attendants_available = int(cursor.fetchone()["cnt"])
 
         return (
             pilots_available >= req_pilots
@@ -652,74 +606,8 @@ def _has_enough_crew_for_window(
         arr_dt,
     )
 
-    pilot_sql_fallback = """
-        SELECT COUNT(*) AS cnt
-        FROM Pilots p
-        WHERE
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Pilots fcp
-            JOIN Flights       f2 ON f2.Flight_id = fcp.Flight_id
-            JOIN Flight_Routes r2 ON f2.Route_Id  = r2.Route_Id
-            WHERE fcp.Pilot_id = p.Pilot_id
-              AND fcp.Flight_id <> %s
-              AND NOT (
-                    DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
-                OR  f2.Dep_DateTime >= %s
-              )
-          )
-          AND
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Pilots fprev
-            JOIN Flights       f2 ON f2.Flight_id = fprev.Flight_id
-            JOIN Flight_Routes r2 ON r2.Route_Id  = f2.Route_Id
-            WHERE fprev.Pilot_id = p.Pilot_id
-              AND fprev.Flight_id <> %s
-              AND f2.Dep_DateTime < %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Destination_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MAX(f3f.Dep_DateTime)
-                    FROM FlightCrew_Pilots f3
-                    JOIN Flights f3f ON f3f.Flight_id = f3.Flight_Id
-                    WHERE f3.Pilot_id = p.Pilot_Id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime < %s
-                      AND f3f.Status <> 'Cancelled'
-              )
-          )
-          AND
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Pilots fnext
-            JOIN Flights       f2 ON f2.Flight_Id = fnext.Flight_Id
-            JOIN Flight_Routes r2 ON r2.Route_Id  = f2.Route_Id
-            WHERE fnext.Pilot_id = p.Pilot_id
-              AND fnext.Flight_Id <> %s
-              AND f2.Dep_DateTime > %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Origin_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MIN(f3f.Dep_DateTime)
-                    FROM FlightCrew_Pilots f3
-                    JOIN Flights f3f ON f3f.Flight_Id = f3.Flight_Id
-                    WHERE f3.Pilot_Id = p.Pilot_Id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime > %s
-                      AND f3f.Status <> 'Cancelled'
-              )
-          )
-    """
-    pilot_params_fallback = pilot_params_long[1:]  # בלי long_flag
-
-    try:
-        cursor.execute(pilot_sql_long, pilot_params_long)
-        pilots_available = int(cursor.fetchone()["cnt"])
-    except Error as e:
-        print("DB error in _has_enough_crew_for_window (pilots, NEW, LongHaul):", e)
-        cursor.execute(pilot_sql_fallback, pilot_params_fallback)
-        pilots_available = int(cursor.fetchone()["cnt"])
+    cursor.execute(pilot_sql_long, pilot_params_long)
+    pilots_available = int(cursor.fetchone()["cnt"])
 
     # Attendants – כמו אצל טייסים, כולל לוקיישן
     attendant_sql_long = """
@@ -800,74 +688,8 @@ def _has_enough_crew_for_window(
         arr_dt,
     )
 
-    attendant_sql_fallback = """
-        SELECT COUNT(*) AS cnt
-        FROM FlightAttendants fa
-        WHERE
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Attendants fca
-            JOIN Flights       f2 ON f2.Flight_id = fca.Flight_Id
-            JOIN Flight_Routes r2 ON f2.Route_Id  = r2.Route_Id
-            WHERE fca.Attendant_Id = fa.Attendant_Id
-              AND fca.Flight_Id <> %s
-              AND NOT (
-                    DATE_ADD(f2.Dep_DateTime, INTERVAL r2.Duration_Minutes MINUTE) <= %s
-                OR  f2.Dep_DateTime >= %s
-              )
-          )
-          AND
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Attendants fprev
-            JOIN Flights       f2 ON f2.Flight_Id = fprev.Flight_Id
-            JOIN Flight_Routes r2 ON r2.Route_Id  = f2.Route_Id
-            WHERE fprev.Attendant_Id = fa.Attendant_Id
-              AND fprev.Flight_Id <> %s
-              AND f2.Dep_DateTime < %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Destination_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MAX(f3f.Dep_DateTime)
-                    FROM FlightCrew_Attendants f3
-                    JOIN Flights f3f ON f3f.Flight_Id = f3.Flight_Id
-                    WHERE f3.Attendant_Id = fa.Attendant_Id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime < %s
-                      AND f3f.Status <> 'Cancelled'
-              )
-          )
-          AND
-          NOT EXISTS (
-            SELECT 1
-            FROM FlightCrew_Attendants fnext
-            JOIN Flights       f2 ON f2.Flight_Id = fnext.Flight_Id
-            JOIN Flight_Routes r2 ON r2.Route_Id  = f2.Route_Id
-            WHERE fnext.Attendant_Id = fa.Attendant_Id
-              AND fnext.Flight_Id <> %s
-              AND f2.Dep_DateTime > %s
-              AND f2.Status <> 'Cancelled'
-              AND r2.Origin_Airport_code <> %s
-              AND f2.Dep_DateTime = (
-                    SELECT MIN(f3f.Dep_DateTime)
-                    FROM FlightCrew_Attendants f3
-                    JOIN Flights f3f ON f3f.Flight_Id = f3.Flight_Id
-                    WHERE f3.Attendant_Id = fa.Attendant_Id
-                      AND f3.Flight_Id <> %s
-                      AND f3f.Dep_DateTime > %s
-                      AND f3f.Status <> 'Cancelled'
-              )
-          )
-    """
-    attendant_params_fallback = attendant_params_long[1:]
-
-    try:
-        cursor.execute(attendant_sql_long, attendant_params_long)
-        attendants_available = int(cursor.fetchone()["cnt"])
-    except Error as e:
-        print("DB error in _has_enough_crew_for_window (attendants, NEW, LongHaul):", e)
-        cursor.execute(attendant_sql_fallback, attendant_params_fallback)
-        attendants_available = int(cursor.fetchone()["cnt"])
+    cursor.execute(attendant_sql_long, attendant_params_long)
+    attendants_available = int(cursor.fetchone()["cnt"])
 
     return (
         pilots_available >= req_pilots
