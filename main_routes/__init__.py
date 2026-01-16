@@ -88,11 +88,11 @@ def _get_default_seat_price(seat_class: str) -> float:
 from . import (
     home,
     flights,
-    crew,
+    flights_crew,
     booking,
-    manager_orders,
+    manager_view_orders,
     manager_reports,
     aircrafts,
-    staff,
+    flytau_staff,
     seats
 )

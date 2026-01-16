@@ -149,18 +149,37 @@ def _validate_crew_form(form):
 @main_bp.route("/manager/crew")
 def manager_crew_list():
     """
-    Manager view: list all pilots and flight attendants in two tables.
+    Manager view: list all managers, pilots and flight attendants in separate tables.
     """
     if not _require_manager():
         return redirect(url_for("auth.login"))
 
     conn = None
     cursor = None
+    managers = []
     pilots = []
     attendants = []
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+
+        # Managers (password excluded)
+        cursor.execute(
+            """
+            SELECT
+                Manager_id     AS Id,
+                First_Name     AS FirstName,
+                Last_Name      AS LastName,
+                City,
+                Street,
+                House_Number,
+                Phone_Number,
+                Start_Working_Date
+            FROM Managers
+            ORDER BY Last_Name, First_Name
+            """
+        )
+        managers = cursor.fetchall()
 
         # Pilots
         cursor.execute(
@@ -212,6 +231,7 @@ def manager_crew_list():
 
     return render_template(
         "manager_crew_list.html",
+        managers=managers,
         pilots=pilots,
         attendants=attendants,
         lock_manager_nav=False,

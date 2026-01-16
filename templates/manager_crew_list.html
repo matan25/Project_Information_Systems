@@ -1,9 +1,8 @@
-
 {# =========================================================
    Template: manager_crew_list.html
-   Purpose: Manager overview of all crew members.
-            Displays separate tables for Pilots and Flight Attendants, including
-            contact details, seniority, total flight hours, and long-haul status.
+   Purpose: Manager overview of all staff members.
+            Displays separate tables for Managers, Pilots and Flight Attendants,
+            including contact details, seniority and long-haul status (where relevant).
    ========================================================= #}
 {% extends "base.html" %}
 {% block title %}Crew members{% endblock %}
@@ -14,8 +13,9 @@
     <div class="page-header-left">
       <h1 class="page-title">Crew members</h1>
       <p class="subtitle">
-        View all pilots and flight attendants in the system,
-        including their long-haul qualifications.
+        A manager is allowed to add pilots and flight attendants only.<br>
+        View all managers, pilots and flight attendants in the system,
+        including long-haul qualifications (for crew only).
       </p>
     </div>
     <div class="page-header-actions">
@@ -28,8 +28,43 @@
     </div>
   </div>
 
-  <!-- Pilots -->
+  <!-- Managers -->
   <section class="section-block">
+    <h2 class="section-title">Managers</h2>
+    {% if managers %}
+      <div class="table-card">
+        <div class="table-wrapper" style="max-height: 380px; overflow-y: auto;">
+          <table class="table table--grid">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Full name</th>
+                <th>Address</th>
+                <th>Phone</th>
+                <th>Start working</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for m in managers %}
+              <tr>
+                <td>{{ m.Id }}</td>
+                <td>{{ m.FirstName }} {{ m.LastName }}</td>
+                <td>{{ m.City }}, {{ m.Street }} {{ m.House_Number }}</td>
+                <td>{{ m.Phone_Number }}</td>
+                <td>{{ m.Start_Working_Date.strftime("%Y-%m-%d") if m.Start_Working_Date }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-state">No managers found.</p>
+    {% endif %}
+  </section>
+
+  <!-- Pilots -->
+  <section class="section-block" style="margin-top: 2rem;">
     <h2 class="section-title">Pilots</h2>
     {% if pilots %}
       <div class="table-card">
@@ -42,7 +77,6 @@
                 <th>Address</th>
                 <th>Phone</th>
                 <th>Start working</th>
-                <th>Total flight hours</th>
                 <th>Long-haul certified</th>
               </tr>
             </thead>
@@ -54,7 +88,6 @@
                 <td>{{ p.City }}, {{ p.Street }} {{ p.House_Number }}</td>
                 <td>{{ p.Phone_Number }}</td>
                 <td>{{ p.Start_Working_Date.strftime("%Y-%m-%d") if p.Start_Working_Date }}</td>
-                <td>{{ p.Total_Flight_Hours }}</td>
                 <td>
                   {% if p.Long_Haul_Certified %}
                     Yes
@@ -87,7 +120,6 @@
                 <th>Address</th>
                 <th>Phone</th>
                 <th>Start working</th>
-                <th>Total flight hours</th>
                 <th>Long-haul certified</th>
               </tr>
             </thead>
@@ -99,7 +131,6 @@
                 <td>{{ a.City }}, {{ a.Street }} {{ a.House_Number }}</td>
                 <td>{{ a.Phone_Number }}</td>
                 <td>{{ a.Start_Working_Date.strftime("%Y-%m-%d") if a.Start_Working_Date }}</td>
-                <td>{{ a.Total_Flight_Hours }}</td>
                 <td>
                   {% if a.Long_Haul_Certified %}
                     Yes

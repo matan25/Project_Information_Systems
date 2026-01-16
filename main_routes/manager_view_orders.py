@@ -8,11 +8,6 @@ Features:
     * Active / Completed: full original total
     * Cancelled-Customer: 5% fee as amount charged, plus refund
     * Cancelled-System: amount charged = 0, full refund
-- Auto-propagation:
-    If a flight is cancelled and order is still Active → mark as Cancelled-System.
-
-Note:
-Orders.Customer_Type ∈ {'Register','Guest'}   <-- matches DB ENUM
 """
 
 from datetime import datetime, timedelta
