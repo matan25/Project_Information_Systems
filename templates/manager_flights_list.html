@@ -1,3 +1,10 @@
+
+{# =========================================================
+   Template: manager_flights_list.html
+   Purpose: Flights board for managers with advanced filters (route/dates/profile/status).
+            Displays derived arrival time and automatic Full-Occupied status logic.
+            Provides actions to edit/cancel active flights or view history for locked flights.
+   ========================================================= #}
 {% extends "base.html" %}
 {% block title %}Flights management{% endblock %}
 
@@ -41,6 +48,41 @@
       </div>
     </div>
 
+    <style>
+      input[type="date"]{
+        background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.28);
+        color: #f5f7ff;
+      }
+      input[type="date"]::-webkit-calendar-picker-indicator{
+        filter: invert(1) brightness(1.35);
+        opacity: 1;
+      }
+    </style>
+
+    {# Build dropdown options from airports if provided; otherwise fallback to flights #}
+    {% set ns = namespace(origins={}, dests={}) %}
+
+    {% if airports is defined and airports %}
+      {% for a in airports %}
+        {% if a.Airport_code and (a.Airport_code not in ns.origins) %}
+          {% set _ = ns.origins.update({a.Airport_code: (a.City or '')}) %}
+        {% endif %}
+        {% if a.Airport_code and (a.Airport_code not in ns.dests) %}
+          {% set _ = ns.dests.update({a.Airport_code: (a.City or '')}) %}
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      {% for f in flights %}
+        {% if f.Origin_Airport_code and (f.Origin_Airport_code not in ns.origins) %}
+          {% set _ = ns.origins.update({f.Origin_Airport_code: (f.Origin_City or '')}) %}
+        {% endif %}
+        {% if f.Destination_Airport_code and (f.Destination_Airport_code not in ns.dests) %}
+          {% set _ = ns.dests.update({f.Destination_Airport_code: (f.Destination_City or '')}) %}
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
     <form method="get"
           action="{{ url_for('main.manager_flights') }}"
           class="toolbar toolbar--filters">
@@ -50,25 +92,49 @@
                id="flight_id"
                name="flight_id"
                value="{{ flight_id_filter or '' }}"
-               placeholder="e.g. F020">
+               placeholder="e.g. FT001">
       </div>
 
       <div class="toolbar-group">
         <label for="origin">Origin</label>
-        <input type="text"
-               id="origin"
-               name="origin"
-               value="{{ origin_filter or '' }}"
-               placeholder="e.g. TLV">
+        <select id="origin" name="origin">
+          <option value="" {% if not origin_filter %}selected{% endif %}>All</option>
+          {% for code, city in ns.origins|dictsort %}
+            <option value="{{ code }}"
+                    {% if origin_filter == code %}selected{% endif %}>
+              {{ city }} ({{ code }})
+            </option>
+          {% endfor %}
+        </select>
       </div>
 
       <div class="toolbar-group">
         <label for="destination">Destination</label>
-        <input type="text"
-               id="destination"
-               name="dest"
-               value="{{ dest_filter or '' }}"
-               placeholder="e.g. JFK">
+        <select id="destination" name="dest">
+          <option value="" {% if not dest_filter %}selected{% endif %}>All</option>
+          {% for code, city in ns.dests|dictsort %}
+            <option value="{{ code }}"
+                    {% if dest_filter == code %}selected{% endif %}>
+              {{ city }} ({{ code }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <label for="dep_date">Departure date</label>
+        <input type="date"
+               id="dep_date"
+               name="dep_date"
+               value="{{ dep_date_filter or '' }}">
+      </div>
+
+      <div class="toolbar-group">
+        <label for="arr_date">Arrival date</label>
+        <input type="date"
+               id="arr_date"
+               name="arr_date"
+               value="{{ arr_date_filter or '' }}">
       </div>
 
       <div class="toolbar-group">
@@ -118,6 +184,10 @@
       <button type="submit" class="btn-secondary toolbar-apply">
         Apply filters
       </button>
+
+      <a href="{{ url_for('main.manager_flights') }}" class="btn-secondary toolbar-apply">
+        Clear filters
+      </a>
     </form>
 
     {% if flights and flights|length > 0 %}

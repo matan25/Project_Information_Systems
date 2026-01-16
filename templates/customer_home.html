@@ -1,3 +1,9 @@
+
+{# =========================================================
+   Template: customer_home.html
+   Purpose: Customer landing page ("Customer area") with quick navigation tiles
+            to flight search and registered order history.
+   ========================================================= #}
 {% extends "base.html" %}
 {% block title %}Customer area{% endblock %}
 
@@ -29,7 +35,7 @@
         <p>Find active flights by origin, destination and date, and select seats.</p>
       </a>
 
-      {# אין יותר צורך במסך דרכון+תאריך לידה – מעבר ישר להיסטוריית הזמנות #}
+      {#  מעבר ישר להיסטוריית הזמנות #}
       <a class="tile" href="{{ url_for('main.customer_orders') }}">
         <h2>My orders (registered)</h2>
         <p>

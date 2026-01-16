@@ -1,3 +1,10 @@
+
+{# =========================================================
+   Template: customer_orders.html
+   Purpose: Registered customers order history page.
+            Supports filtering by status and cancelling eligible orders via a
+            confirmation modal (5% fee, 36h rule), with a link to order details.
+   ========================================================= #}
 {# templates/customer_orders.html #}
 {% extends "base.html" %}
 {% block title %}My Orders{% endblock %}
@@ -81,6 +88,7 @@
     background: #dc2626;
   }
 </style>
+<!-- Opens a confirmation modal for order cancellation and submits the selected order form on approval. -->
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {

@@ -1,4 +1,3 @@
-# auth_routes.py
 """
 Authentication and registration logic for FLYTAU.
 
@@ -6,33 +5,6 @@ Routes:
 - /login          : sign in as customer or manager (different views via ?role=...)
 - /register       : create a new registered-customer account or upgrade a guest
 - /logout         : clear the session and redirect to login
-
-CUSTOMER MODEL – DB STRUCTURE (NEW)
------------------------------------
-
-We now have two separate tables for customers:
-
-1) Register_Customers
-   - Customer_Email    (PK)
-   - First_Name
-   - Last_Name
-   - Passport_No       (UNIQUE)
-   - Registration_Date
-   - Birth_Date
-   - Customer_Password (NOT NULL for registered customers)
-
-   Phones: in Register_Customers_Phones (Customer_Email, Phone_Number)
-
-2) Guest_Customers
-   - Customer_Email    (PK)
-   - First_Name
-   - Last_Name
-
-   Phones: in Guest_Customers_Phones (Customer_Email, Phone_Number)
-
-Orders table:
-- Orders(Customer_Email, Customer_Type)
-  where Customer_Type ∈ {'Register','Guest'}   <-- matches DB ENUM
 """
 
 from datetime import datetime, date
@@ -235,9 +207,9 @@ def register():
 
     Cases:
     1) Only Register_Customers row exists for this email  → error "already registered".
-    2) Only Guest_Customers row exists                    → create new Register row,
+    2) Only Guest_Customers row exists  → create new Register row,
        move phones, update Orders, delete Guest rows.
-    3) Both Guest and Register exist (old leftover)       → UPDATE existing Register row
+    3) Both Guest and Register exist (old leftover)  → UPDATE existing Register row
        with new details, merge phones, update Orders, delete Guest rows.
     """
     today_str = date.today().isoformat()
@@ -251,9 +223,8 @@ def register():
         passport_no = (request.form.get("passport_no") or "").strip()
         birth_date = (request.form.get("birth_date") or "").strip()
 
-        phone1 = (request.form.get("phone1") or "").strip()
-        phone2 = (request.form.get("phone2") or "").strip()
-        phone3 = (request.form.get("phone3") or "").strip()
+        # NEW: unlimited phones inputs named "phones"
+        raw_phones = [(p or "").strip() for p in request.form.getlist("phones")]
 
         errors = []
         birth_date_value = None
@@ -321,8 +292,7 @@ def register():
             except ValueError:
                 errors.append("Invalid birth date format. Please use YYYY-MM-DD.")
 
-        # --- Phones ---
-        raw_phones = [phone1, phone2, phone3]
+        # --- Phones (NOW REQUIRED: at least one) ---
         phones_clean = []
         for idx, p in enumerate(raw_phones, start=1):
             if not p:
@@ -335,6 +305,10 @@ def register():
                 normalized = _normalize_phone(p)
                 if normalized not in phones_clean:
                     phones_clean.append(normalized)
+
+        # REQUIRED: at least one phone
+        if not phones_clean:
+            errors.append("Please provide at least one phone number.")
 
         if errors:
             for msg in errors:

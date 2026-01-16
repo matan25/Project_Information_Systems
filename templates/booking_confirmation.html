@@ -1,3 +1,10 @@
+{# =========================================================
+   Template: booking_confirmation.html
+   Purpose: Display the final booking summary (order details + tickets + totals).
+            Supports guest cancellation via a confirmation modal (5% fee, 36h rule),
+            and provides navigation back to search / orders / guest lookup.
+   ========================================================= #}
+
 {# templates/booking_confirmation.html #}
 {% extends "base.html" %}
 
@@ -81,13 +88,12 @@
     background: #dc2626;
   }
 </style>
+<!-- Opens a guest booking cancellation modal and submits the cancellation form only after confirmation. -->
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const backdrop = document.getElementById("guest-cancel-modal");
-    if (!backdrop) {
-      return;
-    }
+    if (!backdrop) return;
 
     const orderSpan = document.getElementById("guest-cancel-modal-order-code");
     const keepBtn = document.getElementById("guest-cancel-modal-keep");
@@ -100,9 +106,7 @@
         e.preventDefault();
         pendingForm = this.closest("form");
         const orderCode = this.getAttribute("data-order-code") || "";
-        if (orderSpan) {
-          orderSpan.textContent = orderCode;
-        }
+        if (orderSpan) orderSpan.textContent = orderCode;
         backdrop.classList.add("is-visible");
       });
     });
@@ -116,9 +120,7 @@
 
     if (confirmBtn) {
       confirmBtn.addEventListener("click", function () {
-        if (pendingForm) {
-          pendingForm.submit();
-        }
+        if (pendingForm) pendingForm.submit();
       });
     }
 
@@ -175,9 +177,15 @@
         ({{ order.Origin_Airport_code }} &rarr; {{ order.Destination_Airport_code }})<br>
         <strong>Departure:</strong> {{ order.Dep_str }}<br>
         <strong>Arrival (calculated):</strong> {{ order.Arr_str }}<br>
-        <strong>Customer name:</strong>
-        {{ order.First_Name }} {{ order.Last_Name }}<br>
-        <strong>Customer email:</strong> {{ order.Customer_Email }}
+        <strong>Customer name:</strong> {{ order.First_Name }} {{ order.Last_Name }}<br>
+        <strong>Customer email:</strong> {{ order.Customer_Email }}<br>
+
+        <strong>Phone numbers:</strong>
+        {% if customer_phones and customer_phones|length > 0 %}
+          {{ customer_phones|join(", ") }}
+        {% else %}
+          -
+        {% endif %}
       </p>
     </div>
 

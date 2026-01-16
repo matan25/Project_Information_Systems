@@ -1,3 +1,10 @@
+{# =========================================================
+   Template: manager_flight_form.html
+   Purpose: Create or edit a flight (route + departure time + aircraft selection).
+            - Create flow: check availability, then choose an eligible aircraft.
+            - Edit flow: schedule and aircraft are locked; allow cancel via modal.
+            Arrival time is derived from departure time + route duration.
+   ========================================================= #}
 {% extends "base.html" %}
 
 {% block title %}
@@ -400,6 +407,7 @@
     </div>
   {% endif %}
 </div>
+<!-- Controls the cancel-flight confirmation modal and submits the form only after confirmation. -->
 
 {% if mode == 'edit' %}
 <script>

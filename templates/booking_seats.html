@@ -1,3 +1,11 @@
+
+{# =========================================================
+   Template: booking_seats.html
+   Purpose: Seat selection screen for a specific flight.
+            Lists available FlightSeats with prices, collects passenger details
+            (auto-filled for registered customers / form for guests), then proceeds
+            to the booking summary step.
+   ========================================================= #}
 {# templates/booking_seats.html #}
 {% extends "base.html" %}
 {% block title %}Select Seats{% endblock %}
@@ -127,38 +135,57 @@
               </div>
             </div>
 
-            <div class="form-row"
-                 style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
-              <div style="flex:1; min-width:160px;">
-                <label for="guest_phone" style="color:#0b225e;">Phone 1 (required)</label>
-                <input type="tel"
-                       id="guest_phone"
-                       name="guest_phone"
-                       required
-                       style="background-color:#152347; color:#ffffff; border:1px solid #ccc;"
-                       value="{% if guest_form and guest_form.phones_raw and guest_form.phones_raw|length > 0 %}{{ guest_form.phones_raw[0] }}{% endif %}">
-              </div>
-              <div style="flex:1; min-width:160px;">
-                <label for="guest_phone2" style="color:#0b225e;">Phone 2 (optional)</label>
-                <input type="tel"
-                       id="guest_phone2"
-                       name="guest_phone2"
-                       style="background-color:#152347; color:#ffffff; border:1px solid #ccc;"
-                       value="{% if guest_form and guest_form.phones_raw and guest_form.phones_raw|length > 1 %}{{ guest_form.phones_raw[1] }}{% endif %}">
-              </div>
-              <div style="flex:1; min-width:160px;">
-                <label for="guest_phone3" style="color:#0b225e;">Phone 3 (optional)</label>
-                <input type="tel"
-                       id="guest_phone3"
-                       name="guest_phone3"
-                       style="background-color:#152347; color:#ffffff; border:1px solid #ccc;"
-                       value="{% if guest_form and guest_form.phones_raw and guest_form.phones_raw|length > 2 %}{{ guest_form.phones_raw[2] }}{% endif %}">
-              </div>
-            </div>
+            {# NEW: unlimited guest phones (at least one required) #}
+            {% set guest_phones_prefill = [] %}
+            {% if guest_form and guest_form.phones_raw %}
+              {% set guest_phones_prefill = guest_form.phones_raw %}
+            {% endif %}
 
-            <p class="field-hint" style="margin-top: 6px; color:#555;">
-              You can enter up to 3 phone numbers so we can contact you if needed.
-            </p>
+            <div class="form-row" style="margin-top:12px;">
+              <label style="display:flex; justify-content:space-between; align-items:center; color:#0b225e;">
+                Phone numbers (at least 1 required)
+                <button type="button" class="btn-secondary" style="padding:6px 10px;"
+                        onclick="addGuestPhoneField('')">
+                  + Add phone
+                </button>
+              </label>
+
+              <div id="guest-phones">
+                {% if guest_phones_prefill and guest_phones_prefill|length > 0 %}
+                  {% for p in guest_phones_prefill %}
+                    <div class="phone-row" style="display:flex; gap:8px; margin-bottom:8px;">
+                      <input type="tel"
+                             name="guest_phones"
+                             {% if loop.index == 1 %}required{% endif %}
+                             placeholder="Phone"
+                             value="{{ p }}"
+                             style="flex:1; background-color:#152347; color:#ffffff; border:1px solid #ccc;">
+                      <button type="button" class="btn-secondary" style="padding:6px 10px;"
+                              onclick="removePhoneRow(this)">
+                        Remove
+                      </button>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="phone-row" style="display:flex; gap:8px; margin-bottom:8px;">
+                    <input type="tel"
+                           name="guest_phones"
+                           required
+                           placeholder="Phone (required)"
+                           value=""
+                           style="flex:1; background-color:#152347; color:#ffffff; border:1px solid #ccc;">
+                    <button type="button" class="btn-secondary" style="padding:6px 10px;"
+                            onclick="removePhoneRow(this)">
+                      Remove
+                    </button>
+                  </div>
+                {% endif %}
+              </div>
+
+              <p class="field-hint" style="margin-top: 6px; color:#555;">
+                You can add any number of phone numbers so we can contact you if needed.
+              </p>
+            </div>
           {% endif %}
         </div>
 
@@ -185,4 +212,42 @@
     </form>
   </div>
 </div>
+<!-- Manages dynamic guest phone inputs and enforces that at least one phone field remains required. -->
+
+<script>
+function addGuestPhoneField(value) {
+  const container = document.getElementById('guest-phones');
+  const row = document.createElement('div');
+  row.className = 'phone-row';
+  row.style.cssText = "display:flex; gap:8px; margin-bottom:8px;";
+
+  row.innerHTML = `
+    <input type="tel"
+           name="guest_phones"
+           placeholder="Phone"
+           value="${value || ''}"
+           style="flex:1; background-color:#152347; color:#ffffff; border:1px solid #ccc;">
+    <button type="button" class="btn-secondary" style="padding:6px 10px;"
+            onclick="removePhoneRow(this)">
+      Remove
+    </button>
+  `;
+  container.appendChild(row);
+  ensureFirstPhoneRequired();
+}
+
+function removePhoneRow(btn) {
+  const row = btn.parentElement;
+  row.remove();
+  ensureFirstPhoneRequired();
+}
+
+function ensureFirstPhoneRequired() {
+  const inputs = document.querySelectorAll('#guest-phones input[name="guest_phones"]');
+  inputs.forEach((inp) => inp.removeAttribute('required'));
+  if (inputs.length > 0) {
+    inputs[0].setAttribute('required', 'required');
+  }
+}
+</script>
 {% endblock %}

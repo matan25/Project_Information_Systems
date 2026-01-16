@@ -1,3 +1,11 @@
+
+{# =========================================================
+   Template: login.html
+   Purpose: Shared sign-in page for managers and customers.
+            - Manager mode: sign in by Manager ID + password.
+            - Customer mode: sign in by email + password, or continue as guest.
+            Also blocks customer sign-in if a manager session is already active.
+   ========================================================= #}
 {# templates/login.html #}
 {% extends "base.html" %}
 {% block title %}Sign in{% endblock %}

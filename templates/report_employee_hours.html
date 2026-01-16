@@ -1,51 +1,59 @@
+{#
+  Template: report_employee_hours.html
+  Purpose: Report 3 — Show cumulative flight hours per employee (pilots and attendants),
+           split into long flights (> 6 hours) and short flights (<= 6 hours),
+           based on completed flights only.
+  Input:
+    - employees: list of rows with (Employee_id, Full_Name, Employee_Type, Long_Hours, Short_Hours)
+#}
 {% extends "base.html" %}
 
 {% block content %}
 <div class="page-card">
-    <div class="page-header-row">
-        <h1 class="page-title">Report 3: Employee flight hours</h1>
-        <div>
-            <a href="{{ url_for('main.manager_reports_menu') }}" class="btn-secondary">
-                All reports
-            </a>
-            <a href="{{ url_for('main.manager_home') }}" class="btn-small">
-                Manager dashboard
-            </a>
-        </div>
+  <div class="page-header-row">
+    <h1 class="page-title">Report 3: Employee flight hours</h1>
+    <div>
+      <a href="{{ url_for('main.manager_reports_menu') }}" class="btn-secondary">
+        All reports
+      </a>
+      <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+        Manager dashboard
+      </a>
     </div>
+  </div>
 
-    <p class="subtitle">
-        Cumulative hours flown by each pilot and flight attendant,
-        split into long flights (&gt; 6 hours) and short flights (≤ 6 hours).
-    </p>
+  <p class="subtitle">
+    Cumulative hours flown by each pilot and flight attendant,
+    split into long flights (&gt; 6 hours) and short flights (&le; 6 hours).
+  </p>
 
-    {% if employees %}
+  {% if employees %}
     <div class="table-wrapper" style="max-height: 480px; overflow-y: auto;">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Employee ID</th>
-                    <th>Full name</th>
-                    <th>Role</th>
-                    <th>Long-hours flights</th>
-                    <th>Short-hours flights</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for e in employees %}
-                <tr>
-                    <td>{{ e.Employee_id }}</td>
-                    <td>{{ e.Full_Name }}</td>
-                    <td>{{ e.Employee_Type }}</td>
-                    <td>{{ e.Long_Hours | round(2) }}</td>
-                    <td>{{ e.Short_Hours | round(2) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employee ID</th>
+            <th>Full name</th>
+            <th>Role</th>
+            <th>Long-hours flights</th>
+            <th>Short-hours flights</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in employees %}
+            <tr>
+              <td>{{ e.Employee_id }}</td>
+              <td>{{ e.Full_Name }}</td>
+              <td>{{ e.Employee_Type }}</td>
+              <td>{{ e.Long_Hours | round(2) }}</td>
+              <td>{{ e.Short_Hours | round(2) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    {% else %}
+  {% else %}
     <p>No completed flights found for employees.</p>
-    {% endif %}
+  {% endif %}
 </div>
 {% endblock %}

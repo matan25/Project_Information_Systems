@@ -1,3 +1,8 @@
+{#
+  Template: Report 1 — Flight load factor
+  Purpose: Show seat occupancy for each completed flight (sold seats / total seats),
+           including route and departure/arrival timestamps.
+#}
 {% extends "base.html" %}
 
 {% block content %}
@@ -16,7 +21,7 @@
 
     <p class="subtitle">
         Shows seat occupancy (load factor) for each completed flight:
-        number of sold seats, total seats, and occupancy percentage.
+        route, departure/arrival time, number of sold seats, total seats, and occupancy percentage.
     </p>
 
     {% if flights %}
@@ -25,7 +30,9 @@
             <thead>
                 <tr>
                     <th>Flight ID</th>
+                    <th>Route</th>
                     <th>Departure</th>
+                    <th>Arrival</th>
                     <th>Total seats</th>
                     <th>Sold seats</th>
                     <th>Load factor (%)</th>
@@ -35,7 +42,9 @@
                 {% for f in flights %}
                 <tr>
                     <td>{{ f.Flight_id }}</td>
+                    <td>{{ f.Route_str }}</td>
                     <td>{{ f.Dep_str }}</td>
+                    <td>{{ f.Arr_str }}</td>
                     <td>{{ f.Total_Seats }}</td>
                     <td>{{ f.Sold_Seats }}</td>
                     <td>{{ f.Load_Factor_Percent }}</td>

@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+        {# =========================================================
+            Template: base.html
+            Purpose: Global layout shared across the site (top navigation, flash messages,
+                main content container, and footer). Supports optional workflow locking
+                (lock_manager_nav) to disable navigation during multi-step flows.
+       ========================================================= #}
     <meta charset="UTF-8">
     <title>
         {% block title %}FLYTAU – Flight Management System{% endblock %}

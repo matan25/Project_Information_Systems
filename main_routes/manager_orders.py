@@ -2,7 +2,7 @@
 Manager view for all orders in the system.
 
 Features:
-- Show all orders (registered + guest)
+- Show all orders (registered + guest customers) in manager interface
 - Filter by status, flight ID, customer email
 - Display ticket count and price logic consistent with customer views:
     * Active / Completed: full original total

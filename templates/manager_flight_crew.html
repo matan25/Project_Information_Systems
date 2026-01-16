@@ -1,3 +1,10 @@
+{# =========================================================
+   Template: manager_flight_crew.html
+   Purpose: Assign crew (pilots & attendants) to a specific flight.
+            Lists only eligible crew members (time/location constraints + long-haul
+            certification when required). Pre-selects currently assigned crew.
+            After saving, continues to seat pricing.
+   ========================================================= #}
 {% extends "base.html" %}
 
 {% block title %}
@@ -127,7 +134,7 @@
           Save crew &amp; continue to seat pricing
         </button>
 
-        {# חזור לפרטי הטיסה – לא ללוח הטיסות #}
+        {# חזור לפרטי הטיסה  #}
         <a href="{{ url_for('main.manager_edit_flight', flight_id=flight.Flight_id) }}"
            class="btn-secondary">
           Back to flight details

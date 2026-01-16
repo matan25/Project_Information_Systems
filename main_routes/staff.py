@@ -16,7 +16,6 @@ from . import main_bp, _require_manager
 def _is_hebrew_name(value: str) -> bool:
     """
     Allow names that contain Hebrew letters (plus spaces, apostrophe and dash).
-    The UI texts are in English, but the actual name can be in Hebrew.
     """
     if not value:
         return False
@@ -48,9 +47,6 @@ def _validate_crew_form(form):
 
     Start working date is taken automatically from the system clock.
     Long-haul certification is taken from the form.
-    NOTE: Total flight hours are *not* handled here and should not
-          exist as a column in the DB anymore.
-
     Returns: (clean_data_dict, errors_list, original_form_for_template)
     """
     errors = []

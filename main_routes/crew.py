@@ -76,15 +76,13 @@ def _required_crew_for_flight(flight):
 
 def _load_available_crew(cursor, flight):
     """
-    Return pilots / attendants that:
-
-      * אין להם חפיפות בזמן עם טיסות אחרות
-      * במסלול ארוך – חייבים להיות Long_Haul_Certified = 1 (אם העמודה קיימת)
-      * FIX: נאכפים גם כללי מיקום:
-          - הטיסה הקודמת (הכי מאוחרת לפני היציאה) חייבת להסתיים בשדה המוצא
-          - הטיסה הבאה (הכי מוקדמת אחרי הנחיתה) חייבת לצאת משדה היעד
-
-    טיסות Cancelled אינן נלקחות בחשבון בכללי מיקום (Status <> 'Cancelled').
+     Return the count-based availability result for pilots/attendants who:
+      * Have NO time overlap with any other assigned flights
+        (excluding ignore_flight_id when provided).
+      * For long-haul routes: must be Long_Haul_Certified = 1 (if the column exists).
+      * Location continuity rules:
+          - The latest flight BEFORE departure must end at the origin airport.
+          - The earliest flight AFTER arrival must depart from the destination airport.
     """
     dep_dt = flight["Dep_DateTime"]
     arr_dt = flight["Arr_DateTime"]
@@ -290,20 +288,13 @@ def _load_crew_ui_state(cursor, flight_id, flight):
     Helper for the crew-assignment screen:
 
     Returns:
-      - pilots:      list of pilot rows to show in the UI (WITHOUT duplicates)
-      - attendants:  list of attendant rows to show in the UI (WITHOUT duplicates)
+      - pilots:      list of pilot rows to show in the UI
+      - attendants:  list of attendant rows to show in the UI
       - current_pilot_ids: list[str] of Pilot_id currently assigned
       - current_att_ids:   list[str] of Attendant_id currently assigned
       - allowed_pilot_ids: set[int] of Pilot_id that are allowed to be selected
                            (either available now, or already assigned)
       - allowed_att_ids:   set[int] of Attendant_id that are allowed to be selected
-
-    Rule:
-      - אנשי צוות שכבר הוקצו לטיסה יישארו אפשריים גם אם בעקבות ביטול/שינוי
-        טיסת-חיבור, כלל הלוקיישן כבר לא מתקיים – מניחים שהחברה דואגת
-        לרילוקציה שלהם ליעד המתאים.
-      - אנשי צוות חדשים לא יופיעו אם הם לא עוברים את כל האילוצים.
-      - כל איש צוות מופיע ברשימה פעם אחת בלבד (תיקון באג השכפול).
     """
     # Current assignments
     current_pilot_ids, current_att_ids = _load_current_crew_ids(cursor, flight_id)
@@ -363,7 +354,7 @@ def _load_crew_ui_state(cursor, flight_id, flight):
         key=lambda r: (r["Last_name"], r["First_name"]),
     )
 
-    # --- Deduplicate & sort attendants ---
+    # --- sort attendants ---
     att_by_id = {}
     for row in (attendants_available + extra_attendants):
         aid = int(row["Attendant_id"])
@@ -403,11 +394,13 @@ def manager_flight_crew(flight_id):
 
     After a successful save, the user continues to the seat-pricing screen.
 
-    Important:
-    - אנשי צוות שלא עומדים באילוצי זמן/לוקיישן *לא יופיעו בכלל* ברשימות.
-    - אנשי צוות שכבר משובצים לטיסה יישארו אפשריים גם לאחר ביטול טיסת-חיבור
-      באמצע השרשרת – מניחים שהחברה מעבירה אותם ליעד הבא.
-    - לאחר תיקון הבאג, כל טייס/דייל מופיע פעם אחת בלבד במסך.
+    - Crew members who do NOT satisfy the time / availability constraints and (when enforced) the
+      location-continuity constraints are NOT shown in the dropdown lists at all.
+
+    - Crew members already assigned to this flight remain selectable even if an intermediate
+      “connecting” flight in their chain was cancelled/changed — we assume the airline can
+      reposition them to the next required destination.
+
     """
     if not _require_manager():
         return redirect(url_for("auth.login"))
@@ -439,8 +432,6 @@ def manager_flight_crew(flight_id):
             allowed_att_ids,
         ) = _load_crew_ui_state(cursor, flight_id, flight)
 
-        # Safety net: if there are not enough allowed crew members
-        # (either available now OR already assigned), block the screen.
         if len(allowed_pilot_ids) < required_pilots or len(allowed_att_ids) < required_attendants:
             flash(
                 "This flight currently does not have enough eligible crew members "
@@ -463,11 +454,10 @@ def manager_flight_crew(flight_id):
             pilot_ids = [int(x) for x in pilot_ids_raw if x.strip()]
             att_ids = [int(x) for x in att_ids_raw if x.strip()]
 
-            # For the UI, we want to preserve the user's selections even on errors
+            # preserve the user's selections even on errors
             current_pilot_ids = [str(p) for p in pilot_ids]
             current_att_ids = [str(a) for a in att_ids]
 
-            # אין יותר בדיקה על time/location – מי שלא מתאים בכלל לא הופיע בטופס.
             if len(pilot_ids) != required_pilots:
                 flash(
                     f"This aircraft requires exactly {required_pilots} pilot(s). "

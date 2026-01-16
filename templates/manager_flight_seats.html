@@ -1,3 +1,11 @@
+
+{# =========================================================
+   Template: manager_seat_pricing.html
+   Purpose: Manage seat prices and seat statuses for a flight.
+            Supports filtering by class/status/seat label and bulk/single updates
+            for AVAILABLE seats only. In read-only mode (departed/cancelled/completed),
+            prices and statuses are displayed without editing controls.
+   ========================================================= #}
 {# templates/manager_seat_pricing.html #}
 {% extends "base.html" %}
 
@@ -51,6 +59,7 @@
     opacity: 0.85;
   }
 </style>
+<!-- Applies client-side seat filters and supports bulk/single price edits for available seats before submitting. -->
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
@@ -368,10 +377,23 @@
                 </td>
                 <td>
                   {# שינוי מחיר אפשרי רק למושבים זמינים + לא במצב read-only #}
-                  {% if is_readonly or s.Seat_Status != 'Available' %}
+                  {# תיקון: כאשר המושב לא Available אבל עדיין ניתן לשנות סטטוס (Blocked->Available),
+                     חייבים לשלוח גם price_... כדי שהשרת לא ידלג על השורה #}
+                  {% if is_readonly %}
                     <span class="readonly-value">
                       {{ "%.2f"|format(s.Seat_Price) }} $
                     </span>
+
+                  {% elif s.Seat_Status != 'Available' %}
+                    <span class="readonly-value">
+                      {{ "%.2f"|format(s.Seat_Price) }} $
+                    </span>
+                    <input
+                      type="hidden"
+                      name="price_{{ s.FlightSeat_id }}"
+                      value="{{ "%.2f"|format(s.Seat_Price) }}"
+                    >
+
                   {% else %}
                     <input
                       type="number"

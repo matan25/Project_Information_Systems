@@ -1,3 +1,10 @@
+{# =========================================================
+   Template: manager_orders.html
+   Purpose: System-wide orders monitoring for managers.
+            Lists all bookings (registered/guest), with filters by order status,
+            flight ID, and customer email. Shows order/cancel dates and financials
+            (original total, charged amount, cancellation fee, refund amount).
+   ========================================================= #}
 {% extends "base.html" %}
 {% block title %}All Orders{% endblock %}
 
@@ -60,7 +67,7 @@
                id="flight_id"
                name="flight_id"
                value="{{ flight_id_filter or '' }}"
-               placeholder="e.g. F020">
+               placeholder="e.g. FT001">
       </div>
 
       <div class="toolbar-group">
@@ -75,6 +82,10 @@
       <button type="submit" class="btn-secondary toolbar-apply">
         Apply filters
       </button>
+
+      <a href="{{ url_for('main.manager_orders') }}" class="btn-secondary toolbar-apply">
+        Clear filters
+      </a>
     </form>
 
     {% if orders %}

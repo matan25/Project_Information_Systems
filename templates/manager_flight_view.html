@@ -1,4 +1,9 @@
-
+{# =========================================================
+   Template: manager_flight_history.html
+   Purpose: Read-only historical view for a flight that cannot be edited.
+            Shows route/timing/aircraft details, assigned crew, and the full seat
+            list with prices, statuses, and FlightSeat identifiers.
+   ========================================================= #}
 {% extends "base.html" %}
 {% block title %}Flight history {{ flight.Flight_id }}{% endblock %}
 

@@ -1,3 +1,11 @@
+
+{# =========================================================
+   Template: manager_aircraft_seats_form.html
+   Purpose: Configure the seat layout for a specific aircraft.
+            - Large aircraft: Business + Economy
+            - Small aircraft: Economy only
+            Collects rows/cols per cabin and generates Seats accordingly.
+   ========================================================= #}
 {% extends "base.html" %}
 {% block title %}Configure seats{% endblock %}
 
@@ -90,13 +98,6 @@
       <div class="form-actions">
         <button type="submit" class="btn-primary">
           Generate seats and finish
-        </button>
-
-        <!-- חזרה צעד אחד אחורה להגדרת פרטי המטוס בלבד -->
-        <button type="button"
-                class="btn-secondary"
-                onclick="window.history.back();">
-          Back to previous step
         </button>
       </div>
     </form>

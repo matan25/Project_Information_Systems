@@ -1,3 +1,8 @@
+{#
+  Template: Report 5 — Aircraft monthly activity
+  Purpose: Display monthly activity per aircraft, including completed/cancelled counts,
+           utilization percentage, and the dominant route for that aircraft-month.
+#}
 {% extends "base.html" %}
 
 {% block content %}
@@ -16,7 +21,7 @@
 
     <p class="subtitle">
         Activity summary per aircraft and month: completed vs. cancelled flights,
-        utilization rate and most common route.
+        utilization rate and most common route (based on completed flights only; ties may show multiple routes).
     </p>
 
     {% if records %}

@@ -12,10 +12,10 @@ Manager features:
 
 Assumptions:
 - Aircrafts table:
-    Aircraft_id (PK), Manufacturer, Model, Size, Purchase_Date
+    Aircraft_id , Manufacturer, Model, Size, Purchase_Date
 - Seats table:
-    Seat_id (PK), Aircraft_id (FK), Row_Num, Col_Num, Seat_Class
-- IdCounters(Name PK, NextNum BIGINT) exists and is used for numeric sequences.
+    Seat_id , Aircraft_id , Row_Num, Col_Num, Seat_Class
+- IdCounters  exists and is used for numeric sequences.
 """
 
 from datetime import datetime
@@ -55,11 +55,9 @@ def _get_next_seat_number(cursor) -> int:
 
 def _reserve_seat_block(cursor, amount: int) -> int:
     """
-    Concurrency-safe reservation for Seat_id numbers using IdCounters.
-
+    Concurrency reservation for Seat_id numbers using IdCounters.
     Requires table:
         IdCounters(Name PK, NextNum BIGINT)
-
     Name used: 'Seat'
     """
     if amount <= 0:
@@ -150,14 +148,10 @@ def _get_next_aircraft_number(cursor) -> int:
 
 def _reserve_aircraft_number(cursor, amount: int = 1) -> int:
     """
-    Concurrency-safe reservation for Aircraft numeric suffix using IdCounters.
-
+    Concurrency reservation for Aircraft numeric suffix using IdCounters.
     Patterns generated:
         - Aircraft_id = 'AC' + manufacturer_initial + <running 3-digit number>
           e.g. 'ACB001', 'ACA002', 'ACD003', ...
-
-    We keep the numeric part global across all aircrafts for simplicity.
-
     IdCounters row name: 'Aircraft'
     """
     if amount <= 0:
@@ -226,11 +220,6 @@ def _build_aircraft_id(manufacturer: str, numeric_suffix: int) -> str:
     """
     Build Aircraft_id in the format:
         AC + <first letter of manufacturer> + 3-digit number
-
-    Examples:
-        manufacturer = 'Boeing',  numeric_suffix = 1  -> 'ACB001'
-        manufacturer = 'Airbus',  numeric_suffix = 7  -> 'ACA007'
-        manufacturer = 'Dasso',   numeric_suffix = 23 -> 'ACD023'
     """
     if not manufacturer:
         initial = "X"

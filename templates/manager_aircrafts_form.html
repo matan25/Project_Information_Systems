@@ -1,8 +1,15 @@
+
+{# =========================================================
+   Template: aircraft_form.html
+   Purpose: Create or edit an aircraft (Manufacturer / Model / Size).
+            Manufacturer may be locked in edit mode; after saving, the workflow
+            continues to the seat-layout configuration step.
+            When lock_manager_nav=true, navigation/back actions are hidden/blocked.
+   ========================================================= #}
 {% extends "base.html" %}
 {% block title %}
   {% if mode == 'edit' %}Edit aircraft{% else %}Create aircraft{% endif %}
 {% endblock %}
-
 {% block content %}
 {# האם הניווט נעול ב-workflow? מגיע מה-view כ-lock_manager_nav=True/False #}
 {% set nav_locked = lock_manager_nav|default(false) %}

@@ -9,42 +9,10 @@ from flask import Blueprint, render_template, session, redirect, url_for, flash
 main_bp = Blueprint("main", __name__)
 
 # --------------------------------------------------
-# Basic home routes
-# --------------------------------------------------
-
-
-@main_bp.route("/")
-def index():
-    """Public home page."""
-    return render_template("home.html")
-
-
-@main_bp.route("/customer/home")
-def customer_home():
-    """Customer landing page (after identifying registered customer)."""
-    if not _require_customer():
-        return redirect(url_for("main.customer_orders_login"))
-    return render_template("customer_home.html")
-
-
-@main_bp.route("/manager/home")
-def manager_home():
-    """Manager landing page."""
-    if not _require_manager():
-        return redirect(url_for("auth.login"))
-    manager_name = session.get("manager_name", "Manager")
-    return render_template(
-        "manager_home.html",
-        manager_name=manager_name,
-        lock_manager_nav=False,  # Regular manager panel – navigation is unlocked
-    )
-
-
-# --------------------------------------------------
 # Shared configuration
 # --------------------------------------------------
 
-# 6 hours → long-haul
+# More than 6 hours - long-haul
 LONG_FLIGHT_THRESHOLD_MINUTES = 360
 
 # crew requirements by flight profile
@@ -56,7 +24,6 @@ CREW_REQUIREMENTS = {
 # default price per seat class (base values)
 SEAT_DEFAULT_PRICE_BY_CLASS = {
     "Business": 1200.0,
-    # "Premium": 800.0,
     "Economy": 400.0,
 }
 

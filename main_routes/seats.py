@@ -1,9 +1,6 @@
 """
 Seats management for flights:
 - Manager view/update of seat prices and statuses per flight.
-
-Extracted from flights.py to a dedicated module,
-without שינוי לוגיקה קיימת.
 """
 
 from datetime import datetime, timedelta
@@ -13,7 +10,11 @@ from mysql.connector import Error
 
 from db import get_db_connection
 from . import main_bp, _require_manager
-from .flights import _compute_arrival, _auto_update_full_occupied
+from .flights import (
+    _compute_arrival,
+    _auto_update_full_occupied,
+    _sync_flight_seats_from_orders,   # <-- NEW: sync seats from Orders+Tickets
+)
 
 
 @main_bp.route("/manager/flights/<flight_id>/seats", methods=["GET", "POST"])
@@ -51,6 +52,23 @@ def manager_flight_seats(flight_id):
         if not flight:
             flash("Flight not found.", "error")
             return redirect(url_for("main.manager_flights"))
+
+        # ---- NEW: keep seat statuses and flight status consistent on every entry ----
+        # This ensures that if a manager previously changed Blocked->Available,
+        # the system will immediately set it back to Sold if a valid Ticket exists,
+        # and also update Full-Occupied/Active accordingly.
+        try:
+            _sync_flight_seats_from_orders(cursor, flight_id=flight_id)
+            _auto_update_full_occupied(cursor, flight_id)
+            conn.commit()
+
+            # refresh current flight status (might have changed to/from Full-Occupied)
+            cursor.execute("SELECT Status FROM Flights WHERE Flight_id = %s", (flight_id,))
+            srow = cursor.fetchone()
+            if srow and "Status" in srow:
+                flight["Status"] = srow["Status"]
+        except Exception as e:
+            print("Warning: failed to sync seats / update Full-Occupied on entry:", e)
 
         now = datetime.now()
         is_readonly = flight["Dep_DateTime"] <= now or flight["Status"] in ("Cancelled", "Completed")
@@ -116,6 +134,10 @@ def manager_flight_seats(flight_id):
                     (price, status, fs_id),
                 )
 
+            # ---- NEW: sync after manager changes, then update flight status ----
+            # If manager set Blocked->Available but there is an active ticket,
+            # the seat will become Sold again, and Full-Occupied will update properly.
+            _sync_flight_seats_from_orders(cursor, flight_id=flight_id)
             _auto_update_full_occupied(cursor, flight_id)
 
             conn.commit()

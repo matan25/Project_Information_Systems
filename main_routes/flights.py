@@ -11,8 +11,7 @@ Flight management:
     * for flights that cannot be edited anymore (past departure / cancelled / completed)
     * includes crew + seat statuses and prices
 
-NOTE:
-- Arrival DateTime is treated as a derived field from Dep_DateTime + route Duration_Minutes.
+- arrival DateTime is treated as a derived field from Dep_DateTime + route Duration_Minutes.
 """
 
 from datetime import datetime, timedelta
@@ -46,7 +45,6 @@ def _aircraft_has_conflict(cursor, aircraft_id, dep_dt, arr_dt, ignore_flight_id
     """
     Checks if the given aircraft already has a flight that overlaps
     with (dep_dt, arr_dt).
-
     Arrival is derived using Flight_Routes.Duration_Minutes.
     Cancelled flights are ignored.
     """
@@ -93,12 +91,6 @@ def _aircraft_location_ok(
         * The very first non-cancelled flight of an aircraft has no "starting"
           location constraint.
         * Cancelled flights are ignored for positioning.
-
-    - For EXISTING flights (edit mode, ignore_flight_id is not None):
-        * We assume the company already arranged repositioning of the aircraft
-          between airports if needed, exactly כמו אנשי הצוות.
-        * לכן בעריכת טיסה קיימת איננו חוסמים בגלל כלל הלוקיישן – רק חפיפות
-          זמן נבדקות בפונקציות אחרות.
     """
     if not aircraft_id or not route_id or dep_dt is None or duration_minutes is None:
         # Defensive fallback – do not block if data is incomplete
@@ -196,13 +188,8 @@ def _aircraft_location_ok(
 
 def _load_routes_and_aircrafts():
     """
-    Loads routes and aircrafts for manager forms.
-    Returns (routes_list, aircrafts_list).
-
-    NOTE:
-    - Only aircrafts that have at least one defined seat (Seats table)
-      are returned. This enforces that a flight cannot be created for
-      an aircraft until its seat layout is fully configured.
+    Loads routes and aircrafts for manager forms
+    Returns (routes_list, aircrafts_list)
     """
     conn = None
     cursor = None
@@ -265,12 +252,7 @@ def _load_routes_and_aircrafts():
 
 def _get_next_flight_seat_number(cursor) -> int:
     """
-    Backward-compatible helper:
-    Returns next numeric part for FlightSeat_id prefix FS.
-
-    NOTE:
-    This MAX-based approach is NOT safe under concurrency.
-    We keep it as a fallback when IdCounters is not available.
+    Returns next numeric part for FlightSeat_id prefix FS
     """
     cursor.execute(
         """
@@ -354,9 +336,7 @@ def _reserve_flightseat_block(cursor, amount: int) -> int:
 def _get_next_flight_id(cursor) -> str:
     """
     Generate the next Flight_id in the format 'FT001', 'FT002', ...
-
-    Uses IdCounters(Name='Flight'). Falls back to scanning existing
-    Flight_id values that start with 'FT' if IdCounters table is missing.
+    Uses IdCounters(Name='Flight')
     """
     try:
         cursor.execute(
@@ -424,8 +404,7 @@ def _get_next_flight_id(cursor) -> str:
 
 def _required_crew_for_size(size: str):
     """
-    Crew rules used at creation/edit-time (must be consistent with crew module).
-
+    Crew rules used at creation/edit-time
     For now:
       - Short-haul:
           * 2 pilots
@@ -449,17 +428,20 @@ def _has_enough_crew_for_window(
     ignore_flight_id=None,
 ) -> bool:
     """
-    Check if there are enough free pilots & attendants for this flight window.
+    Check whether there are enough available qualified crew members
+    (pilots + attendants) for the given flight time window.
 
-    מצב NEW (ignore_flight_id is None):
-        - אין חפיפות זמן
-        - כלל לוקיישן מלא (טיסה קודמת/באה, לא Cancelled)
-        - long-haul: דורש Long_Haul_Certified=1 אצל צוות
+    NEW flight (ignore_flight_id is None):
+      - Enforces NO time overlaps with other assigned flights.
+      - Enforces full location continuity relative to the closest previous/next
+        NON-cancelled flights (crew must be at the correct airport).
+      - If the route is long-haul (Duration > LONG_FLIGHT_THRESHOLD_MINUTES),
+        requires Long_Haul_Certified = 1.
 
-    מצב EDIT (ignore_flight_id not None):
-        - אין חפיפות זמן
-        - אין כלל לוקיישן (מניחים רילוקציה אחרי ביטולים/שינויים)
-        - long-haul: עדיין דורש Long_Haul_Certified=1
+    EDIT flight (ignore_flight_id is not None):
+      - Enforces NO time overlaps (excluding ignore_flight_id).
+      - Skips location continuity checks (assumes possible relocation).
+      - Long-haul certification requirement still applies.
     """
     req_pilots, req_attendants = _required_crew_for_size(aircraft_size)
 
@@ -473,7 +455,7 @@ def _has_enough_crew_for_window(
     # ---------- EDIT MODE: בודק רק חפיפות זמן (ללא לוקיישן) ----------
     if edit_mode:
         # --- Pilots: זמן + תעודת long-haul (אם נדרש) ---
-        pilot_sql_long = """
+        pilot_sql_query = """
             SELECT COUNT(*) AS cnt
             FROM Pilots p
             WHERE
@@ -491,13 +473,13 @@ def _has_enough_crew_for_window(
                   )
               )
         """
-        pilot_params_long = (long_flag, current_flight_id, dep_dt, arr_dt)
+        pilot_params_query = (long_flag, current_flight_id, dep_dt, arr_dt)
 
-        cursor.execute(pilot_sql_long, pilot_params_long)
+        cursor.execute(pilot_sql_query, pilot_params_query)
         pilots_available = int(cursor.fetchone()["cnt"])
 
-        # --- Attendants: זמן + תעודת long-haul (אם נדרש) ---
-        attendant_sql_long = """
+        # --- Attendants: long-haul ---
+        attendant_sql_query = """
             SELECT COUNT(*) AS cnt
             FROM FlightAttendants fa
             WHERE
@@ -515,9 +497,9 @@ def _has_enough_crew_for_window(
                   )
               )
         """
-        attendant_params_long = (long_flag, current_flight_id, dep_dt, arr_dt)
+        attendant_params_query = (long_flag, current_flight_id, dep_dt, arr_dt)
 
-        cursor.execute(attendant_sql_long, attendant_params_long)
+        cursor.execute(attendant_sql_query, attendant_params_query)
         attendants_available = int(cursor.fetchone()["cnt"])
 
         return (
@@ -525,10 +507,10 @@ def _has_enough_crew_for_window(
             and attendants_available >= req_attendants
         )
 
-    # ---------- NEW FLIGHT MODE: לוקיישן + זמן (הקוד המקורי שלך) ----------
+    # ---------- NEW FLIGHT MODE: ----------
 
     # Pilots
-    pilot_sql_long = """
+    pilot_sql_query= """
         SELECT COUNT(*) AS cnt
         FROM Pilots p
         WHERE
@@ -589,7 +571,7 @@ def _has_enough_crew_for_window(
               )
           )
     """
-    pilot_params_long = (
+    pilot_params_query = (
         long_flag,
         current_flight_id,
         dep_dt,
@@ -606,11 +588,11 @@ def _has_enough_crew_for_window(
         arr_dt,
     )
 
-    cursor.execute(pilot_sql_long, pilot_params_long)
+    cursor.execute(pilot_sql_query, pilot_params_query)
     pilots_available = int(cursor.fetchone()["cnt"])
 
-    # Attendants – כמו אצל טייסים, כולל לוקיישן
-    attendant_sql_long = """
+    # Attendants
+    attendant_sql_query = """
         SELECT COUNT(*) AS cnt
         FROM FlightAttendants fa
         WHERE
@@ -671,7 +653,7 @@ def _has_enough_crew_for_window(
               )
           )
     """
-    attendant_params_long = (
+    attendant_params_query = (
         long_flag,
         current_flight_id,
         dep_dt,
@@ -688,7 +670,7 @@ def _has_enough_crew_for_window(
         arr_dt,
     )
 
-    cursor.execute(attendant_sql_long, attendant_params_long)
+    cursor.execute(attendant_sql_query, attendant_params_query)
     attendants_available = int(cursor.fetchone()["cnt"])
 
     return (
@@ -715,11 +697,7 @@ def _filter_aircrafts_for_window(
       * no overlapping flights for that aircraft (time),
       * positioning rule: aircraft must be at the origin airport at dep_dt,
       * if check_crew=True – there must be enough available crew members
-        (pilots + attendants) for this aircraft size and window,
-        with the same location rules as in the crew module.
-
-    הערה: בעת עריכת טיסה קיימת (ignore_flight_id לא None) כלל הלוקיישן
-    בפועל אינו נחסם למטוס – אנחנו מניחים רילוקציה – אבל חפיפות זמן עדיין נבדקות.
+        (pilots + attendants) for this aircraft size and window
     """
     if not dep_dt or duration_minutes is None:
         # Even in this fallback case, keep only aircrafts with seats
@@ -871,18 +849,97 @@ def _filter_aircrafts_same_layout(cursor, aircrafts, reference_aircraft_id):
 def _auto_update_completed(cursor, now_dt):
     """
     Mark flights as Completed automatically when arrival time passed
-    and current status is Active.
+    and current status is Active OR Full-Occupied.
     """
     cursor.execute(
         """
         UPDATE Flights f
         JOIN Flight_Routes r ON f.Route_id = r.Route_id
         SET f.Status = 'Completed'
-        WHERE f.Status = 'Active'
+        WHERE f.Status IN ('Active', 'Full-Occupied')
           AND DATE_ADD(f.Dep_DateTime, INTERVAL r.Duration_Minutes MINUTE) < %s
         """,
         (now_dt,),
     )
+
+
+
+# -------------------------------------------------------------------
+# Seat-status sync helpers (Sold/Available) based on Orders+Tickets
+# -------------------------------------------------------------------
+
+def _sync_flight_seats_from_orders(cursor, flight_id=None):
+    """
+    Idempotent synchronization layer for FlightSeats.Seat_Status.
+
+    Rules enforced (without touching 'Blocked'):
+      1) If a seat is 'Available' but has at least one Ticket whose Order is NOT
+         'Cancelled-Customer' (case/space-insensitive) -> set seat to 'Sold'.
+      2) If a seat is 'Sold' but all Tickets for that seat belong ONLY to orders
+         that are 'Cancelled-Customer' -> set seat back to 'Available'.
+
+      matches the required table semantics:
+      FlightSeats.Seat_Status ∈ {'Available','Sold','Blocked'}
+    """
+    flight_clause = ""
+    params_sold = []
+    params_rel = []
+
+    if flight_id:
+        flight_clause = " AND fs.Flight_id = %s "
+        params_sold.append(flight_id)
+        params_rel.append(flight_id)
+
+    # (1) Available -> Sold if there exists a non-cancelled-customer order ticket
+    cursor.execute(
+        f"""
+        UPDATE FlightSeats fs
+        SET fs.Seat_Status = 'Sold'
+        WHERE UPPER(TRIM(fs.Seat_Status)) = 'AVAILABLE'
+          AND UPPER(TRIM(fs.Seat_Status)) <> 'BLOCKED'
+          {flight_clause}
+          AND EXISTS (
+                SELECT 1
+                FROM Tickets t
+                JOIN Orders o ON o.Order_code = t.Order_code
+                WHERE t.FlightSeat_id = fs.FlightSeat_id
+                  AND (
+                        o.Status IS NULL
+                        OR UPPER(TRIM(o.Status)) <> 'CANCELLED-CUSTOMER'
+                  )
+          )
+        """,
+        tuple(params_sold),
+    )
+
+    # (2) Sold -> Available if there is no non-cancelled-customer order ticket
+    cursor.execute(
+        f"""
+        UPDATE FlightSeats fs
+        SET fs.Seat_Status = 'Available'
+        WHERE UPPER(TRIM(fs.Seat_Status)) = 'SOLD'
+          AND UPPER(TRIM(fs.Seat_Status)) <> 'BLOCKED'
+          {flight_clause}
+          AND NOT EXISTS (
+                SELECT 1
+                FROM Tickets t2
+                JOIN Orders o2 ON o2.Order_code = t2.Order_code
+                WHERE t2.FlightSeat_id = fs.FlightSeat_id
+                  AND (
+                        o2.Status IS NULL
+                        OR UPPER(TRIM(o2.Status)) <> 'CANCELLED-CUSTOMER'
+                  )
+          )
+        """,
+        tuple(params_rel),
+    )
+
+
+def _sync_all_flight_seats_from_orders(cursor):
+    """
+    wrapper: sync seat statuses across ALL flights.
+    """
+    _sync_flight_seats_from_orders(cursor, flight_id=None)
 
 
 def _auto_update_full_occupied(cursor, flight_id):
@@ -989,12 +1046,9 @@ def _auto_update_full_occupied_all(cursor):
 def _cleanup_cancelled_flights_crew(cursor):
     """
     Sync helper:
-
-    If you changed the Status of a flight manually in SQL to 'Cancelled',
+    If changed the Status of a flight  to 'Cancelled',
     this helper guarantees that the flight crew is not left assigned
     to that flight.
-
-    (The calls are idempotent – safe to execute on every request.)
     """
     # Pilots
     cursor.execute(
@@ -1027,12 +1081,14 @@ def manager_flights():
     """
     Shows all flights for the manager, with optional filters.
 
-    Filters (via query string, all optional):
+    Filters:
       - status: one of {'all', 'Active', 'Completed', 'Cancelled', 'Full-Occupied'}
       - profile: {'all', 'short', 'long'} based on route duration
       - flight_id: substring match
       - origin: substring match on Origin_Airport_code
       - dest: substring match on Destination_Airport_code
+      - dep_date: exact match on departure DATE (YYYY-MM-DD)
+      - arr_date: exact match on arrival DATE (YYYY-MM-DD)
     """
     if not _require_manager():
         return redirect(url_for("auth.login"))
@@ -1043,6 +1099,25 @@ def manager_flights():
     origin_filter = (request.args.get("origin") or "").strip()
     dest_filter = (request.args.get("dest") or "").strip()
 
+    dep_date_filter = (request.args.get("dep_date") or "").strip()
+    arr_date_filter = (request.args.get("arr_date") or "").strip()
+
+    dep_date_obj = None
+    arr_date_obj = None
+    if dep_date_filter:
+        try:
+            dep_date_obj = datetime.strptime(dep_date_filter, "%Y-%m-%d").date()
+        except ValueError:
+            dep_date_filter = ""
+            dep_date_obj = None
+
+    if arr_date_filter:
+        try:
+            arr_date_obj = datetime.strptime(arr_date_filter, "%Y-%m-%d").date()
+        except ValueError:
+            arr_date_filter = ""
+            arr_date_obj = None
+
     valid_statuses = {"Active", "Completed", "Cancelled", "Full-Occupied"}
     if status_filter not in valid_statuses and status_filter != "all":
         status_filter = "all"
@@ -1052,7 +1127,6 @@ def manager_flights():
 
     conn = None
     cursor = None
-    flights = []
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -1061,11 +1135,23 @@ def manager_flights():
 
         try:
             _auto_update_completed(cursor, now)
+
+            _sync_all_flight_seats_from_orders(cursor)
             _auto_update_full_occupied_all(cursor)
+
             _cleanup_cancelled_flights_crew(cursor)
             conn.commit()
         except Error as e:
             print("DB error when auto-updating statuses / cleanup:", e)
+
+        cursor.execute(
+            """
+            SELECT Airport_code, City
+            FROM Airports
+            ORDER BY City, Airport_code
+            """
+        )
+        airports = cursor.fetchall()
 
         cursor.execute(
             """
@@ -1123,16 +1209,26 @@ def manager_flights():
             if dest_filter and dest_filter.lower() not in (fl["Destination_Airport_code"] or "").lower():
                 continue
 
+            # Date filters (exact date match)
+            if dep_date_obj and dep_dt.date() != dep_date_obj:
+                continue
+
+            if arr_date_obj and arr_dt.date() != arr_date_obj:
+                continue
+
             filtered_flights.append(fl)
 
         return render_template(
             "manager_flights_list.html",
             flights=filtered_flights,
+            airports=airports,
             status_filter=status_filter,
             profile_filter=profile_filter,
             flight_id_filter=flight_id_filter,
             origin_filter=origin_filter,
             dest_filter=dest_filter,
+            dep_date_filter=dep_date_filter,
+            arr_date_filter=arr_date_filter,
         )
 
     except Error as e:
@@ -1140,18 +1236,22 @@ def manager_flights():
         flash("Failed to load flights.", "error")
         return render_template(
             "manager_flights_list.html",
-            flights=flights,
+            flights=[],
+            airports=[],
             status_filter=status_filter,
             profile_filter=profile_filter,
             flight_id_filter=flight_id_filter,
             origin_filter=origin_filter,
             dest_filter=dest_filter,
+            dep_date_filter=dep_date_filter,
+            arr_date_filter=arr_date_filter,
         )
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
 
 
 # -----------------------------
@@ -1200,8 +1300,11 @@ def manager_view_flight(flight_id):
             return redirect(url_for("main.manager_flights"))
 
         try:
+            # IMPORTANT: sync seat statuses for this flight, then update Full-Occupied
+            _sync_flight_seats_from_orders(cursor, flight_id=flight_id)
             _auto_update_full_occupied(cursor, flight_id)
             conn.commit()
+
             cursor.execute("SELECT Status FROM Flights WHERE Flight_id = %s", (flight_id,))
             s = cursor.fetchone()
             if s:
@@ -1532,7 +1635,7 @@ def manager_new_flight():
         is_large_aircraft = aircraft["Size"] == "Large"
 
         for seat in seats:
-            # Pricing policy:
+            # Pricing policy(default prices - manager can change):
             #   Long-haul: Business=1200, Economy=400 (via _get_default_seat_price)
             #   Short-haul:
             #       Economy: 200 for all aircraft
@@ -1577,7 +1680,6 @@ def manager_new_flight():
 # Edit flight
 # -----------------------------
 
-
 @main_bp.route("/manager/flights/<flight_id>/edit", methods=["GET", "POST"])
 def manager_edit_flight(flight_id):
     """
@@ -1589,7 +1691,7 @@ def manager_edit_flight(flight_id):
     EDIT RULE:
     - Aircraft cannot be changed at all once the flight has been created.
       The manager can adjust only the departure time and the status,
-      while all constraints (overlap, crew, positioning) are still enforced
+      while all constraints (overlap, crew, positioning) enforced
       for the already-selected aircraft.
 
     SPECIAL CASE:
@@ -1675,7 +1777,9 @@ def manager_edit_flight(flight_id):
 
             # Aircraft is locked – ignore any aircraft selection from the form
             aircraft_id = flight["Aircraft_id"]
-            dep_str = request.form.get("dep_datetime")
+
+            dep_str = None
+            dep_dt = flight["Dep_DateTime"]  # locked DB value
 
             allowed_manager_statuses = {"Active", "Completed", "Cancelled"}
             raw_status = request.form.get("status", flight.get("Status", "Active"))
@@ -1732,104 +1836,9 @@ def manager_edit_flight(flight_id):
                 return redirect(url_for("main.manager_flights"))
 
             # === Regular Active / Completed flow ===
-
-            if not dep_str:
-                flash("Please fill in all fields.", "error")
-                flight["dep_value"] = dep_str or flight["Dep_DateTime"].strftime("%Y-%m-%dT%H:%M")
-                return render_template(
-                    "manager_flights_form.html",
-                    mode="edit",
-                    routes=routes,
-                    aircrafts=aircrafts_for_form,
-                    flight=flight,
-                    long_route=long_route,
-                    min_dep=min_dep,
-                    LONG_FLIGHT_THRESHOLD_MINUTES=LONG_FLIGHT_THRESHOLD_MINUTES,
-                    freeze_schedule=True,
-                    lock_manager_nav=True,
-                    current_aircraft=current_aircraft,
-                )
-
-            try:
-                dep_dt = datetime.strptime(dep_str, "%Y-%m-%dT%H:%M")
-            except ValueError:
-                flash("Invalid departure date/time format.", "error")
-                flight["dep_value"] = dep_str
-                return render_template(
-                    "manager_flights_form.html",
-                    mode="edit",
-                    routes=routes,
-                    aircrafts=aircrafts_for_form,
-                    flight=flight,
-                    long_route=long_route,
-                    min_dep=min_dep,
-                    LONG_FLIGHT_THRESHOLD_MINUTES=LONG_FLIGHT_THRESHOLD_MINUTES,
-                    freeze_schedule=True,
-                    lock_manager_nav=True,
-                    current_aircraft=current_aircraft,
-                )
-
-            if dep_dt <= now:
-                flash("Departure time must be in the future.", "error")
-                flight["dep_value"] = dep_dt.strftime("%Y-%m-%dT%H:%M")
-                return render_template(
-                    "manager_flights_form.html",
-                    mode="edit",
-                    routes=routes,
-                    aircrafts=aircrafts_for_form,
-                    flight=flight,
-                    long_route=long_route,
-                    min_dep=min_dep,
-                    LONG_FLIGHT_THRESHOLD_MINUTES=LONG_FLIGHT_THRESHOLD_MINUTES,
-                    freeze_schedule=True,
-                    lock_manager_nav=True,
-                    current_aircraft=current_aircraft,
-                )
-
-            # Re-filter aircrafts for the UPDATED time window
-            base_filtered_aircrafts = _filter_aircrafts_for_window(
-                cursor,
-                all_aircrafts,
-                dep_dt,
-                duration_minutes,
-                flight["Route_id"],
-                ignore_flight_id=flight_id,
-                check_crew=True,
-            )
-
-            # And re-apply same-layout restriction for the updated window
-            aircrafts_for_form = _filter_aircrafts_same_layout(
-                cursor,
-                base_filtered_aircrafts,
-                flight["Aircraft_id"],
-            )
-
             arr_dt = _compute_arrival(dep_dt, duration_minutes)
 
-            # Check that the current aircraft is still valid for the new window
-            if not any(ac["Aircraft_id"] == aircraft_id for ac in aircrafts_for_form):
-                flash(
-                    "The current aircraft is not available for the new departure time "
-                    "(conflict with other flights, crew or positioning rules). "
-                    "You can only change the schedule – not the aircraft.",
-                    "error",
-                )
-                flight["dep_value"] = dep_dt.strftime("%Y-%m-%dT%H:%M")
-                return render_template(
-                    "manager_flights_form.html",
-                    mode="edit",
-                    routes=routes,
-                    aircrafts=aircrafts_for_form,
-                    flight=flight,
-                    long_route=long_route,
-                    min_dep=min_dep,
-                    LONG_FLIGHT_THRESHOLD_MINUTES=LONG_FLIGHT_THRESHOLD_MINUTES,
-                    freeze_schedule=True,
-                    lock_manager_nav=True,
-                    current_aircraft=current_aircraft,
-                )
-
-            # Validate aircraft size for long-haul route – logic unchanged
+            # Validate aircraft size for long-haul route
             cursor.execute(
                 "SELECT Size, Model FROM Aircrafts WHERE Aircraft_id = %s",
                 (aircraft_id,),
@@ -1890,7 +1899,7 @@ def manager_edit_flight(flight_id):
                     current_aircraft=current_aircraft,
                 )
 
-            # Aircraft time-conflict check (always on the updated time)
+            # Aircraft time-conflict check (with locked dep_dt/arr_dt)
             if _aircraft_has_conflict(cursor, aircraft_id, dep_dt, arr_dt, flight_id):
                 flash("This aircraft is already assigned to another overlapping flight.", "error")
                 flight["dep_value"] = dep_dt.strftime("%Y-%m-%dT%H:%M")
@@ -1908,9 +1917,7 @@ def manager_edit_flight(flight_id):
                     current_aircraft=current_aircraft,
                 )
 
-            # Aircraft positioning rule:
-            # בעריכת טיסה קיימת (ignore_flight_id=flight_id) כלל הלוקיישן מרוכך
-            # בתוך _aircraft_location_ok – לא יחסום בגלל ביטולים באמצע השרשרת.
+            # Aircraft positioning rule (with locked dep_dt)
             if not _aircraft_location_ok(
                 cursor,
                 aircraft_id,
@@ -1939,7 +1946,7 @@ def manager_edit_flight(flight_id):
                     current_aircraft=current_aircraft,
                 )
 
-            # For Active / Completed flights, ensure there is enough crew
+            # For Active / Completed flights, ensure there is enough crew (with locked dep_dt/arr_dt)
             if not _has_enough_crew_for_window(
                 cursor,
                 dep_dt,
@@ -1956,7 +1963,6 @@ def manager_edit_flight(flight_id):
                     "error",
                 )
                 flight["dep_value"] = dep_dt.strftime("%Y-%m-%dT%H:%M")
-
                 return render_template(
                     "manager_flights_form.html",
                     mode="edit",
@@ -1971,27 +1977,28 @@ def manager_edit_flight(flight_id):
                     current_aircraft=current_aircraft,
                 )
 
-            # Update: change only departure time and status; aircraft does not change
+            # update STATUS
             cursor.execute(
                 """
                 UPDATE Flights
-                SET Dep_DateTime = %s,
-                    Status       = %s
+                SET Status = %s
                 WHERE Flight_id = %s
                 """,
-                (dep_dt, new_status, flight_id),
+                (new_status, flight_id),
             )
 
             try:
+                # keep seats in sync before recalculating Full-Occupied
+                _sync_flight_seats_from_orders(cursor, flight_id=flight_id)
                 _auto_update_full_occupied(cursor, flight_id)
             except Exception as e:
-                print("Warning: failed to auto-update Full-Occupied after edit:", e)
+                print("Warning: failed to sync seats / auto-update Full-Occupied after edit:", e)
 
             conn.commit()
+
             flash("Flight details saved! Continue to crew assignment.", "success")
             return redirect(url_for("main.manager_flight_crew", flight_id=flight_id))
 
-        # GET flow (fall-through)
         flight["dep_value"] = flight["Dep_DateTime"].strftime("%Y-%m-%dT%H:%M")
         return render_template(
             "manager_flights_form.html",
@@ -2016,3 +2023,4 @@ def manager_edit_flight(flight_id):
             cursor.close()
         if conn:
             conn.close()
+
