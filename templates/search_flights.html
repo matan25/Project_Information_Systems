@@ -1,4 +1,3 @@
-
 {# =========================================================
    Template: search_flights.html
    Purpose: Public flight search for customers and guests.
@@ -36,7 +35,25 @@
           Find your next destination with FLYTAU.<br>
           Both registered customers and guests can search and book flights.
         </p>
+
+        {# ---- Back button (dynamic) - aligned with your session logic ---- #}
+        <div style="margin-top: 10px;">
+          {% if session.get('role') == 'customer' and session.get('customer_email') %}
+            <a href="{{ url_for('main.customer_home') }}" class="btn-small">
+              Back to my area
+            </a>
+          {% elif session.get('role') == 'manager' and session.get('manager_id') %}
+            <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+              Back to dashboard
+            </a>
+          {% else %}
+            <a href="{{ url_for('auth.login', role='customer') }}" class="btn-small">
+              Back to login
+            </a>
+          {% endif %}
+        </div>
       </div>
+
       <div class="card-form-logo">
         <img src="{{ url_for('static', filename='img/flytau-logo.png') }}"
              alt="FLYTAU logo">
