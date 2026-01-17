@@ -338,21 +338,22 @@ def manager_report_cancellation_rate():
 # Report 5 – Monthly activity per aircraft
 # ----------------------------------------------------------------------
 
-
 @main_bp.route("/manager/reports/aircraft-monthly-activity")
 def manager_report_aircraft_monthly_activity():
     """
-    Report 5: Monthly activity per aircraft.
+    Report 5: Monthly activity per aircraft (utilization by "active days").
 
-    For each aircraft & month:
+    For each aircraft & finished month:
     - Flights_Completed
     - Flights_Cancelled
     - Total_Flights
-    - Utilization_Percent (share of month time in the air, completed flights only)
-    - Dominant_Route (most common Origin–Destination pair in that month, based on completed flights only;
-      if there is a tie, multiple routes are shown).
-
-    Note: This report is limited to flights up to the current timestamp (no future departures).
+    - Utilization_Percent = Active_Days / 30 * 100
+      (Active_Days = number of DISTINCT calendar days in the month with at least one flight
+       that is NOT Cancelled. If a flight arrives on a different day than departure, both
+       the departure day and the arrival day are counted; this also covers cross-month flights.)
+    - Dominant_Routes (most common Origin→Destination in that month based on Completed flights only;
+      ties are shown as a comma-separated list)
+     Only months that already ended are shown.
     """
     if not _require_manager():
         return redirect(url_for("auth.login", role="manager"))
@@ -364,7 +365,7 @@ def manager_report_aircraft_monthly_activity():
     try:
         cursor.execute(
             """
-            WITH flight_monthly AS (
+            WITH flight_base AS (
                 SELECT
                     f.Flight_id,
                     f.Aircraft_id,
@@ -372,48 +373,87 @@ def manager_report_aircraft_monthly_activity():
                     fr.Origin_Airport_code,
                     fr.Destination_Airport_code,
                     fr.Duration_Minutes,
-                    f.Status
+                    f.Status,
+                    DATE(f.Dep_DateTime) AS DepDay,
+                    DATE_ADD(f.Dep_DateTime, INTERVAL fr.Duration_Minutes MINUTE) AS ArrDT,
+                    DATE(DATE_ADD(f.Dep_DateTime, INTERVAL fr.Duration_Minutes MINUTE)) AS ArrDay
                 FROM Flights f
                 JOIN Flight_Routes fr
                   ON f.Route_id = fr.Route_id
-                WHERE f.Dep_DateTime <= NOW()
+            ),
+
+            flight_days AS (
+                -- Departure day counts as an activity day if the flight is not cancelled
+                SELECT
+                    Aircraft_id,
+                    DATE_FORMAT(DepDay, '%Y-%m-01') AS MonthStart,
+                    DepDay AS ActivityDay
+                FROM flight_base
+                WHERE Status <> 'Cancelled'
+
+                UNION ALL
+
+                -- Arrival day counts too (if different from departure day)
+                SELECT
+                    Aircraft_id,
+                    DATE_FORMAT(ArrDay, '%Y-%m-01') AS MonthStart,
+                    ArrDay AS ActivityDay
+                FROM flight_base
+                WHERE Status <> 'Cancelled'
+                  AND ArrDay <> DepDay
+            ),
+
+            flight_monthly AS (
+                SELECT
+                    Flight_id,
+                    Aircraft_id,
+                    MonthStart,
+                    Origin_Airport_code,
+                    Destination_Airport_code,
+                    Duration_Minutes,
+                    Status
+                FROM flight_base
             ),
 
             aircraft_month_summary AS (
                 SELECT
-                    Aircraft_id,
-                    MonthStart,
+                    fm.Aircraft_id,
+                    fm.MonthStart,
                     COUNT(*) AS Total_Flights,
-                    SUM(CASE WHEN Status = 'Completed' THEN 1 ELSE 0 END)  AS Flights_Completed,
-                    SUM(CASE WHEN Status = 'Cancelled' THEN 1 ELSE 0 END) AS Flights_Cancelled,
-                    SUM(CASE WHEN Status = 'Completed' THEN Duration_Minutes ELSE 0 END) AS Total_Flight_Minutes
-                FROM flight_monthly
-                GROUP BY Aircraft_id, MonthStart
+                    SUM(CASE WHEN fm.Status = 'Completed' THEN 1 ELSE 0 END) AS Flights_Completed,
+                    SUM(CASE WHEN fm.Status = 'Cancelled' THEN 1 ELSE 0 END) AS Flights_Cancelled,
+                    COALESCE(fd.Active_Days, 0) AS Active_Days
+                FROM flight_monthly fm
+                LEFT JOIN (
+                    SELECT
+                        Aircraft_id,
+                        MonthStart,
+                        COUNT(DISTINCT ActivityDay) AS Active_Days
+                    FROM flight_days
+                    GROUP BY Aircraft_id, MonthStart
+                ) fd
+                  ON fd.Aircraft_id = fm.Aircraft_id
+                 AND fd.MonthStart  = fm.MonthStart
+                GROUP BY fm.Aircraft_id, fm.MonthStart, fd.Active_Days
             ),
 
             top_route_rank AS (
-                -- Rank routes by number of COMPLETED flights (ties allowed)
                 SELECT
                     Aircraft_id,
                     MonthStart,
                     Origin_Airport_code,
                     Destination_Airport_code,
-                    COUNT(*) AS Route_Flights,
+                    COUNT(*) AS Route_Completed_Flights,
                     DENSE_RANK() OVER (
                         PARTITION BY Aircraft_id, MonthStart
                         ORDER BY COUNT(*) DESC
                     ) AS rk
                 FROM flight_monthly
                 WHERE Status = 'Completed'
-                GROUP BY
-                    Aircraft_id,
-                    MonthStart,
-                    Origin_Airport_code,
-                    Destination_Airport_code
+                GROUP BY Aircraft_id, MonthStart, Origin_Airport_code, Destination_Airport_code
             ),
 
-            top_routes_agg AS (
-                -- If multiple routes share rank 1, show them all (comma-separated)
+            top_routes_concat AS (
                 SELECT
                     Aircraft_id,
                     MonthStart,
@@ -421,32 +461,30 @@ def manager_report_aircraft_monthly_activity():
                         CONCAT(Origin_Airport_code, '→', Destination_Airport_code)
                         ORDER BY Origin_Airport_code, Destination_Airport_code
                         SEPARATOR ', '
-                    ) AS Dominant_Route
+                    ) AS Dominant_Routes
                 FROM top_route_rank
                 WHERE rk = 1
                 GROUP BY Aircraft_id, MonthStart
             )
 
             SELECT
-                ams.Aircraft_id,
+                ms.Aircraft_id,
                 ac.Manufacturer,
                 ac.Model,
-                DATE_FORMAT(ams.MonthStart, '%Y-%m') AS Month,
-                ams.Flights_Completed,
-                ams.Flights_Cancelled,
-                ams.Total_Flights,
-                ROUND(
-                    ams.Total_Flight_Minutes / (30 * 24 * 60) * 100,
-                    2
-                ) AS Utilization_Percent,
-                tra.Dominant_Route
-            FROM aircraft_month_summary AS ams
+                DATE_FORMAT(ms.MonthStart, '%Y-%m') AS Month,
+                ms.Flights_Completed,
+                ms.Flights_Cancelled,
+                ms.Total_Flights,
+                ROUND(ms.Active_Days / 30 * 100, 2) AS Utilization_Percent,
+                COALESCE(trc.Dominant_Routes, '-') AS Dominant_Routes
+            FROM aircraft_month_summary AS ms
             JOIN Aircrafts AS ac
-              ON ac.Aircraft_id = ams.Aircraft_id
-            LEFT JOIN top_routes_agg AS tra
-              ON tra.Aircraft_id = ams.Aircraft_id
-             AND tra.MonthStart  = ams.MonthStart
-            ORDER BY ams.MonthStart, ams.Aircraft_id
+              ON ac.Aircraft_id = ms.Aircraft_id
+            LEFT JOIN top_routes_concat AS trc
+              ON trc.Aircraft_id = ms.Aircraft_id
+             AND trc.MonthStart  = ms.MonthStart
+            WHERE ms.MonthStart < DATE_FORMAT(CURDATE(), '%Y-%m-01')
+            ORDER BY ms.MonthStart, ms.Aircraft_id
             """
         )
 
@@ -464,4 +502,6 @@ def manager_report_aircraft_monthly_activity():
         "report_aircraft_monthly_activity.html",
         records=rows,
     )
+
+
 

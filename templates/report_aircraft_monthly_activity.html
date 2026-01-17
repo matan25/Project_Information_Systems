@@ -1,7 +1,7 @@
 {#
   Template: Report 5 — Aircraft monthly activity
   Purpose: Display monthly activity per aircraft, including completed/cancelled counts,
-           utilization percentage, and the dominant route for that aircraft-month.
+           utilization percentage (by active days), and the dominant routes for that aircraft-month.
 #}
 {% extends "base.html" %}
 
@@ -20,8 +20,14 @@
     </div>
 
     <p class="subtitle">
-        Activity summary per aircraft and month: completed vs. cancelled flights,
-        utilization rate and most common route (based on completed flights only; ties may show multiple routes).
+        Activity summary per aircraft and finished month: completed vs. cancelled flights,
+        utilization rate and dominant routes (based on completed flights only; ties may show multiple routes).
+        <br>
+        <span class="field-hint">
+            Utilization (%) is calculated as: (Active days in the month ÷ 30) × 100.
+            An “active day” is a calendar day with at least one flight that is not <code>Cancelled</code>
+            (departure day counts; arrival day counts too if it is on a different day).
+        </span>
     </p>
 
     {% if records %}
@@ -37,7 +43,7 @@
                     <th>Flights cancelled</th>
                     <th>Total flights</th>
                     <th>Utilization (%)</th>
-                    <th>Dominant route</th>
+                    <th>Dominant routes</th>
                 </tr>
             </thead>
             <tbody>
@@ -51,7 +57,7 @@
                     <td>{{ r.Flights_Cancelled }}</td>
                     <td>{{ r.Total_Flights }}</td>
                     <td>{{ r.Utilization_Percent }}</td>
-                    <td>{{ r.Dominant_Route or '-' }}</td>
+                    <td>{{ r.Dominant_Routes or '-' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -1,4 +1,3 @@
-
 {# =========================================================
    Template: manager_flights_list.html
    Purpose: Flights board for managers with advanced filters (route/dates/profile/status).
@@ -191,6 +190,16 @@
     </form>
 
     {% if flights and flights|length > 0 %}
+
+      <!-- Back to dashboard button (above the flights table, aligned to the right) -->
+      <div class="page-header-row" style="margin-top: 10px; margin-bottom: 10px;">
+        <div></div>
+        <div class="page-header-actions">
+          <a href="{{ url_for('main.manager_home') }}" class="btn-small">
+            Back to dashboard
+          </a>
+        </div>
+      </div>
 
       <div class="table-shell">
         <table class="data-table">

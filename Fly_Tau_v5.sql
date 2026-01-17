@@ -964,6 +964,99 @@ ORDER BY ms.MonthStart, ms.Aircraft_id;
 
 
 
+/* ============================================================
+   דוח 5 — פעילות חודשית לכל מטוס (ניצולת לפי "ימי פעילות")
+
+   מטרת השאילתה:
+   להציג לכל מטוס ולכל חודש:
+   - סך טיסות (Total_Flights)
+   - טיסות שבוצעו (Flights_Completed)
+   - טיסות שבוטלו (Flights_Cancelled)
+   - אחוז ניצולת חודשי: אחוז הימים בחודש בהם המטוס היה "בפעילות"
+     (יום פעילות = קיים לפחות אירוע טיסה אחד שאינו Cancelled באותו יום)
+   - מסלול דומיננטי בחודש (על בסיס טיסות Completed בלבד; בשוויון מציגים את כולם)
+
+   הנחות/הגדרות:
+   1) יום פעילות נספר אם קיימת לפחות טיסה אחת במצב:
+      Active / Full-Occupied / Completed (כלומר: Status <> 'Cancelled').
+   2) שיוך טיסה לחודש נעשה לפי תאריך ההמראה (Dep_DateTime).
+   3) מעבר חודשים (טיסה שמתחילה בחודש ומסתיימת בחודש אחר):
+      - ברמת הנתונים הקיימת (יש רק Dep_DateTime, והגעה נגזרת מה־Duration),
+        אנו מתייחסים ליום(ים) הפעילות באופן הבא:
+        * יום ההמראה תמיד נספר (אם הטיסה לא Cancelled).
+        * כדי לספור גם את יום/ימי ההמשך בחודש הבא, אנו מחשבים Arrival_DateTime
+          ומייצרים רשומת "יום פעילות" נוספת ליום ההגעה (אם שונה מיום ההמראה).
+        כך, טיסה החוצה חצות/חודש יכולה לתרום יום פעילות גם לחודש הבא.
+   4) אחוז הניצולת מחושב ביחס ל־30 ימים (כפי שנדרש בתרגיל),
+      ולכן: Utilization_Percent = Active_Days / 30 * 100.
+   ============================================================ */
+
+WITH flight_base AS (
+    SELECT f.Flight_id, f.Aircraft_id,  DATE_FORMAT(f.Dep_DateTime, '%Y-%m-01') AS MonthStart, fr.Origin_Airport_code, fr.Destination_Airport_code,
+        fr.Duration_Minutes, f.Status, DATE(f.Dep_DateTime) AS DepDay,
+        DATE_ADD(f.Dep_DateTime, INTERVAL fr.Duration_Minutes MINUTE) AS ArrDT,
+        DATE(DATE_ADD(f.Dep_DateTime, INTERVAL fr.Duration_Minutes MINUTE)) AS ArrDay
+    FROM Flights f
+    JOIN Flight_Routes fr ON f.Route_id = fr.Route_id
+),
+
+flight_days AS (
+    SELECT
+        Aircraft_id, DATE_FORMAT(DepDay, '%Y-%m-01') AS MonthStart, DepDay AS ActivityDay
+    FROM flight_base
+    WHERE Status <> 'Cancelled'
+    UNION ALL
+    SELECT
+        Aircraft_id, DATE_FORMAT(ArrDay, '%Y-%m-01') AS MonthStart, ArrDay AS ActivityDay
+    FROM flight_base
+    WHERE Status <> 'Cancelled' AND ArrDay <> DepDay
+),
+
+flight_monthly AS (
+    SELECT
+        Flight_id, Aircraft_id, MonthStart, Origin_Airport_code, Destination_Airport_code, Duration_Minutes, Status
+    FROM flight_base
+),
+
+aircraft_month_summary AS (
+    SELECT
+        fm.Aircraft_id, fm.MonthStart, COUNT(*) AS Total_Flights,
+        SUM(CASE WHEN fm.Status = 'Completed' THEN 1 ELSE 0 END) AS Flights_Completed,
+        SUM(CASE WHEN fm.Status = 'Cancelled' THEN 1 ELSE 0 END) AS Flights_Cancelled, 
+        COALESCE(fd.Active_Days, 0) AS Active_Days
+    FROM flight_monthly fm
+    LEFT JOIN (SELECT Aircraft_id, MonthStart, COUNT(DISTINCT ActivityDay) AS Active_Days
+        FROM flight_days
+        GROUP BY Aircraft_id, MonthStart) fd ON fd.Aircraft_id = fm.Aircraft_id AND fd.MonthStart  = fm.MonthStart
+    GROUP BY fm.Aircraft_id, fm.MonthStart, fd.Active_Days
+),
+
+top_route_rank AS (
+    SELECT
+        Aircraft_id, MonthStart, Origin_Airport_code, Destination_Airport_code, COUNT(*) AS Route_Completed_Flights,
+        DENSE_RANK() OVER (PARTITION BY Aircraft_id, MonthStart Order BY COUNT(*) DESC) AS rk
+    FROM flight_monthly
+    WHERE Status = 'Completed' 
+    GROUP BY Aircraft_id, MonthStart, Origin_Airport_code, Destination_Airport_code
+),
+
+top_routes_concat AS (
+    SELECT
+        Aircraft_id, MonthStart, 
+        GROUP_CONCAT(CONCAT(Origin_Airport_code, '→', Destination_Airport_code) ORDER BY Origin_Airport_code, Destination_Airport_code SEPARATOR ',') AS Dominant_Routes
+    FROM top_route_rank
+    WHERE rk = 1
+    GROUP BY Aircraft_id, MonthStart
+)
+
+SELECT
+    ms.Aircraft_id, ac.Manufacturer, ac.Model,DATE_FORMAT(ms.MonthStart, '%Y-%m') AS Month, ms.Flights_Completed, ms.Flights_Cancelled, ms.Total_Flights,
+    ROUND(ms.Active_Days / 30 * 100, 2) AS Utilization_Percent, COALESCE(trc.Dominant_Routes, '-') AS Dominant_Routes
+FROM aircraft_month_summary AS ms
+JOIN Aircrafts AS ac ON ac.Aircraft_id = ms.Aircraft_id
+LEFT JOIN top_routes_concat AS trc ON trc.Aircraft_id = ms.Aircraft_id AND trc.MonthStart  = ms.MonthStart
+WHERE ms.MonthStart < DATE_FORMAT(CURDATE(), '%Y-%m-01')
+ORDER BY ms.MonthStart, ms.Aircraft_id;
 
 
 
