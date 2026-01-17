@@ -36,15 +36,11 @@
           Both registered customers and guests can search and book flights.
         </p>
 
-        {# ---- Back button (dynamic) - aligned with your session logic ---- #}
+        {# ---- Back button (dynamic) - aligned with  session logic ---- #}
         <div style="margin-top: 10px;">
           {% if session.get('role') == 'customer' and session.get('customer_email') %}
             <a href="{{ url_for('main.customer_home') }}" class="btn-small">
               Back to my area
-            </a>
-          {% elif session.get('role') == 'manager' and session.get('manager_id') %}
-            <a href="{{ url_for('main.manager_home') }}" class="btn-small">
-              Back to dashboard
             </a>
           {% else %}
             <a href="{{ url_for('auth.login', role='customer') }}" class="btn-small">
