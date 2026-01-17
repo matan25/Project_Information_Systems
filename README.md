@@ -1,0 +1,208 @@
+# FlyTAU — Flight Management & Booking System (Project_Information_Systems)
+
+FlyTAU is a Flask + MySQL web application that simulates an airline management and booking platform.  
+It supports **customers (registered)**, **guests**, and **managers**, including flight scheduling, seat inventory, ticketing, and analytical reports.
+
+---
+
+## Project Structure (Folder Tree)
+
+Project_Information_Systems/
+├─ main.py
+├─ config.py
+├─ db.py
+├─ auth_routes.py
+├─ Fly_Tau_v5.sql
+├─ .gitignore
+├─ main_routes/
+│ ├─ init.py
+│ ├─ home.py
+│ ├─ booking.py
+│ ├─ flights.py
+│ ├─ seats.py
+│ ├─ aircrafts.py
+│ ├─ flights_crew.py
+│ ├─ flytau_staff.py
+│ ├─ manager_reports.py
+│ └─ manager_view_orders.py
+├─ templates/
+│ ├─ base.html
+│ ├─ home.html
+│ ├─ login.html
+│ ├─ register.html
+│ ├─ search_flights.html
+│ ├─ booking_seats.html
+│ ├─ booking_review.html
+│ ├─ booking_confirmation.html
+│ ├─ guest_order_lookup.html
+│ ├─ customer_home.html
+│ ├─ customer_orders.html
+│ ├─ manager_home.html
+│ ├─ manager_aircrafts_list.html
+│ ├─ manager_aircrafts_form.html
+│ ├─ manager_aircraft_seats_form.html
+│ ├─ manager_flights_list.html
+│ ├─ manager_flights_form.html
+│ ├─ manager_flight_view.html
+│ ├─ manager_flight_seats.html
+│ ├─ manager_flight_crew.html
+│ ├─ manager_crew_list.html
+│ ├─ manager_crew_form.html
+│ ├─ manager_orders.html
+│ ├─ manager_reports.html
+│ ├─ report_load_factor.html
+│ ├─ report_revenue_by_aircraft.html
+│ ├─ report_employee_hours.html
+│ ├─ report_cancellation_rate.html
+│ └─ report_aircraft_monthly_activity.html
+└─ static/
+├─ styles.css
+└─ img/
+├─ flytau-logo.png
+├─ client-welcome.png
+├─ welcomeaboard.png
+├─ seatmap.png
+└─ graph.png
+
+markdown
+Copy code
+
+---
+
+## Roles & Capabilities
+
+### Manager
+Managers can:
+- Create and manage **flights** (assign aircraft, route, departure time).
+- Edit/cancel flights (with system validation rules).
+- Assign **crew** (pilots + attendants) to flights.
+- Manage **seat pricing** and seat status.
+- View system **reports** (analytics dashboard).
+
+### Registered Customer
+Registered customers can:
+- Search future active flights with available seats.
+- Select seats and place orders.
+- View their personal area (**My area**).
+- View **all orders** in their personal area.
+- View **order history** (past/locked orders such as completed/cancelled), including order and ticket details.
+
+### Guest
+Guests can:
+- Search and book flights similarly to registered customers.
+- Retrieve booking information via **Guest booking lookup** using an **Order Code**.
+
+---
+
+## Authentication & Authorization (auth_routes.py)
+
+The `auth_routes.py` module is responsible for **login, registration, logout, and role-based session handling**.
+
+### Login
+- The login screen (`templates/login.html`) supports role-based access:
+  - **Customer login** (registered customers)
+  - **Manager login**
+- On successful login:
+  - The system stores the user identity in the session (e.g., role + identifying fields).
+  - The user is redirected to the correct home screen:
+    - Customer → `main.customer_home`
+    - Manager → `main.manager_home`
+
+### Registration (Customers)
+- New users can register using `templates/register.html`.
+- Registration creates a new customer record in the database (and any required related data).
+- After registration, the customer can log in and access the personal area.
+
+### Logout
+- Logout clears the session and returns the user to the login screen.
+- Static routes are excluded from navigation tracking to avoid redirect loops.
+
+### Access Control
+- Pages are protected using role checks (e.g., `_require_manager()` or customer session checks).
+- Manager pages are blocked from customers/guests.
+- Customer personal pages require a logged-in customer session.
+
+---
+
+## Flight Search (Customer Side)
+
+The public flight search screen (`templates/search_flights.html`) shows:
+- Only **future flights**
+- Only flights with `Status = Active`
+- Only flights with **Available** seats
+
+It supports filtering by:
+- Origin airport
+- Destination airport
+- Date filter type: **Departure date** or **Arrival date**
+- Specific date (optional)
+
+The table shows:
+- Remaining available seats
+- Starting (minimum) seat price per flight
+- Link to seat selection flow
+
+Navigation behavior:
+- If a registered customer is logged in → **Back to my area**
+- Otherwise → **Back to login**
+
+---
+
+## Core Database Entities (High Level)
+
+- `Airports` — Airport definitions.
+- `Flight_Routes` — Routes (origin, destination, duration).
+- `Aircrafts` — Aircraft metadata.
+- `Seats` — Seats per aircraft (row/col/class).
+- `Flights` — Scheduled flight instance (aircraft + route + departure + status).
+- `FlightSeats` — Seat inventory per flight (price + status).
+- `Orders` — Order header (customer/guest, flight, status).
+- `Tickets` — Tickets per seat purchase (linked to FlightSeats and Orders).
+- `Pilots`, `FlightAttendants`, `Managers` — Staff entities.
+- `FlightCrew_Pilots`, `FlightCrew_Attendants` — Crew assignment per flight.
+- `IdCounters` — Counters for generating formatted IDs (if used by the application).
+
+---
+
+## Orders, Cancellation & Refund Policy
+
+- An **order is considered Active** until **36 hours before the flight departure**.
+- Starting **36 hours before departure**, the order is treated as **Completed**:
+  - It is **locked** (cannot be cancelled),
+  - and the customer **is not eligible for a refund**.
+
+### Cancellation Fee
+- When a cancellation is allowed (before the 36-hour cutoff), a **5% cancellation fee** is applied.
+- The refund amount is calculated after the fee deduction.
+
+---
+
+## Guest Booking Lookup (Order Code)
+
+Guests can retrieve and view their booking details (including payment summary) using the **Guest booking lookup** screen.
+
+- The guest enters an **Order Code** in the format: `O......` (e.g., `O123456`).
+- The lookup screen allows the guest to view:
+  - Orders that are **Active**, **Completed**, or **Cancelled**,
+  - including orders the guest **cancelled** or that were **cancelled by the system**,
+  - and the **payment / charge summary** for that order.
+
+---
+
+## Manager Reports
+
+The manager dashboard includes the following analytics reports:
+
+1. **Flight load factor** — Seat occupancy for completed flights.  
+2. **Revenue by aircraft** — Income breakdown by aircraft size, manufacturer, and seat class.  
+3. **Employee flight hours** — Long vs. short flight hours per pilot and attendant.  
+4. **Cancellation rate** — Monthly cancellation share of all orders.  
+5. **Aircraft monthly activity** — Completion, cancellations, and utilization per aircraft.
+
+---
+
+## Setup (Local)
+
+1) Create a MySQL database (example: `flytau`) and import the schema:
+
+mysql flytau < Fly_Tau_v5.sql
