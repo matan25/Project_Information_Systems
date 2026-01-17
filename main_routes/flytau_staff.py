@@ -23,6 +23,16 @@ def _is_hebrew_name(value: str) -> bool:
     return re.match(pattern, value) is not None
 
 
+def _is_english_address(value: str) -> bool:
+    """
+    Allow address fields that contain English letters only (plus spaces, apostrophe and dash).
+    """
+    if not value:
+        return False
+    pattern = r"^[A-Za-z\s'-]+$"
+    return re.match(pattern, value) is not None
+
+
 def _normalize_phone(phone: str) -> str:
     """Remove spaces and dashes from phone."""
     return phone.replace(" ", "").replace("-", "")
@@ -101,8 +111,13 @@ def _validate_crew_form(form):
     # Address
     if not city:
         errors.append("City is required.")
+    elif not _is_english_address(city):
+        errors.append("City must contain English letters only (you may also use spaces, ' and -).")
+
     if not street:
         errors.append("Street is required.")
+    elif not _is_english_address(street):
+        errors.append("Street must contain English letters only (you may also use spaces, ' and -).")
 
     # House number
     try:

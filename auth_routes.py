@@ -28,8 +28,8 @@ EMAIL_RE = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
 PHONE_MIN_LEN = 7
 PHONE_MAX_LEN = 15
 
-# Names: Hebrew or English letters, spaces, hyphens, apostrophes, length 2–50
-NAME_RE = re.compile(r"^[A-Za-z\u0590-\u05FF][A-Za-z\u0590-\u05FF\s'\-]{1,49}$")
+# Names: English letters only, spaces, hyphens, apostrophes, length 2–50
+NAME_RE = re.compile(r"^[A-Za-z][A-Za-z\s'\-]{1,49}$")
 
 # Passport: EXACTLY 8 digits (numeric only)
 PASSPORT_RE = re.compile(r"^\d{8}$")
@@ -250,7 +250,7 @@ def register():
             errors.append("First name is required.")
         elif not NAME_RE.match(first_name):
             errors.append(
-                "First name may contain only Hebrew/English letters, spaces, "
+                "First name may contain only English letters, spaces, "
                 "hyphens and apostrophes (2–50 characters)."
             )
 
@@ -258,7 +258,7 @@ def register():
             errors.append("Last name is required.")
         elif not NAME_RE.match(last_name):
             errors.append(
-                "Last name may contain only Hebrew/English letters, spaces, "
+                "Last name may contain only English letters, spaces, "
                 "hyphens and apostrophes (2–50 characters)."
             )
 
