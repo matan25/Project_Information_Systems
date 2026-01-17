@@ -242,8 +242,8 @@ def register():
             errors.append("Please confirm your password.")
         if password and confirm and password != confirm:
             errors.append("Passwords do not match.")
-        if password and len(password) < 6:
-            errors.append("Password must be at least 6 characters long.")
+        if password and len(password) < 3:  # CHANGED: minimum 3 characters
+            errors.append("Password must be at least 3 characters long.")
 
         # --- Names ---
         if not first_name:
