@@ -94,6 +94,106 @@ Guests can:
 
 ---
 
+## Timezone / Date-Time Handling (UTC-0)
+
+This project intentionally keeps all server-side timestamps in **UTC (timezone = UTC+0)**.  
+This includes:
+- `datetime.now()` in Python
+- `NOW()` / `CURDATE()` in MySQL (as configured on PythonAnywhere / DB session)
+
+### Why we keep UTC
+- **Consistency**: one unified time reference across environments (local machine, PythonAnywhere, DB).
+- **No daylight-saving issues**: avoids DST edge-cases (Israel DST changes).
+- **Clear debugging**: logs and DB times match the server clock exactly.
+
+### What the user sees (Israel time)
+The UI may show times as stored (UTC) unless explicitly converted.  
+Therefore, **when demonstrating the system, we treat all displayed times as UTC**
+
+### Concrete example (Israel vs UTC)
+Israel is usually **UTC+2** (and **UTC+3** during daylight saving time).
+
+Example:
+- Flight departure saved in DB: `2026-01-18 12:00:00` (UTC)
+- In Israel (winter, UTC+2) this corresponds to: `2026-01-18 14:00:00` (Asia/Jerusalem)
+
+So if the screen shows `12:00`, it is correct **in UTC**, and the equivalent Israel time is **14:00**.
+
+> Note: In summer (DST), the offset may be +3 instead of +2.
+
+### Business rules and UTC
+All business rules that depend on time are computed in UTC as well.
+For example, the cancellation rule "up to 36 hours before departure" is checked using UTC times:
+- If `dep_utc` is the departure time (UTC)
+- `now_utc = datetime.now()` (UTC)
+- Cancellation allowed if: `dep_utc - now_utc > 36 hours`
+
+
+
+---
+
+## Project Structure — `main/` Routes Package (Flask Blueprint)
+
+The `main/` folder is the **core Flask package** that defines the application’s main logic and routes.
+It contains the `main_bp` Blueprint and imports submodules so their route decorators are registered.
+
+### Key file: `main/__init__.py`
+Responsibilities:
+- Defines the Blueprint: `main_bp = Blueprint("main", __name__)`
+- Holds shared constants and helper functions used across multiple route modules, for example:
+  - `LONG_FLIGHT_THRESHOLD_MINUTES` (short vs long flight profile)
+  - `CREW_REQUIREMENTS` (crew size policy per flight profile)
+  - Default seat prices by class (`Economy`, `Business`)
+  - Access control helpers:
+    - `_require_manager()` — manager-only access guard
+    - `_require_customer()` — registered customer-only access guard
+- Imports all route modules to ensure their `@main_bp.route(...)` decorators run:
+  - `home`, `flights`, `flights_crew`, `booking`, `manager_view_orders`, `manager_reports`, `aircrafts`, `flytau_staff`, `seats`
+
+### Route modules overview (what each file is responsible for)
+Typical responsibilities inside `main/` submodules:
+
+- **`home.py`**
+  - Landing pages and navigation endpoints
+  - Main menus for customer/manager flows
+
+- **`flights.py`**
+  - Flight listing and flight details logic
+  - Filtering and presentation of flight data
+  - Any general flight operations not specific to booking checkout
+
+- **`booking.py`**
+  - Customer/guest booking flow:
+    - Search flights (future, active, seats available)
+    - Seat selection
+    - Booking review
+    - Booking confirmation
+  - Seat status synchronization logic (based on Orders/Tickets)
+  - Rules such as:
+    - flight status updates (Active vs Full-Occupied)
+    - cancellation restrictions (36h policy, 5% fee)
+
+- **`flights_crew.py`**
+  - Crew assignment and crew viewing logic for flights
+  - Applies crew requirement policies based on flight duration
+
+- **`manager_reports.py`**
+  - Manager reports endpoints
+  - Report queries execution and rendering (tables/graphs export logic if exists)
+
+- **`manager_view_orders.py`**
+  - Manager view of orders / tickets and monitoring logic
+
+- **`aircrafts.py`**
+  - Aircraft management and aircraft-related views (if enabled)
+
+- **`flytau_staff.py`**
+  - Staff-related pages and interactions (as implemented in the project)
+
+- **`seats.py`**
+  - Seat catalog / seat templates and seat-related utilities (as implemented)
+
+
 ## Authentication & Authorization (auth_routes.py)
 
 The `auth_routes.py` module is responsible for **login, registration, logout, and role-based session handling**.
