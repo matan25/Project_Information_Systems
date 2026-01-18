@@ -289,7 +289,8 @@ def manager_report_cancellation_rate():
 
     For each month:
     - Total_Orders
-    - Cancelled_Orders (Cancelled-Customer or Cancelled-System)
+    - Cancelled_By_Customer (Cancelled-Customer only)
+    - Cancellation_Rate (0..1)
     - Cancellation_Rate_Percent.
     """
     if not _require_manager():
@@ -306,12 +307,19 @@ def manager_report_cancellation_rate():
                 DATE_FORMAT(Order_Date, '%Y-%m') AS YearMonth,
                 COUNT(*) AS Total_Orders,
                 SUM(
-                    CASE WHEN Status IN ('Cancelled-Customer','Cancelled-System')
+                    CASE WHEN Status = 'Cancelled-Customer'
                          THEN 1 ELSE 0 END
-                ) AS Cancelled_Orders,
+                ) AS Cancelled_By_Customer,
                 ROUND(
                     SUM(
-                        CASE WHEN Status IN ('Cancelled-Customer','Cancelled-System')
+                        CASE WHEN Status = 'Cancelled-Customer'
+                             THEN 1 ELSE 0 END
+                    ) * 1.0 / COUNT(*),
+                    4
+                ) AS Cancellation_Rate,
+                ROUND(
+                    SUM(
+                        CASE WHEN Status = 'Cancelled-Customer'
                              THEN 1 ELSE 0 END
                     ) * 100.0 / COUNT(*),
                     2
@@ -332,6 +340,7 @@ def manager_report_cancellation_rate():
         conn.close()
 
     return render_template("report_cancellation_rate.html", months=rows)
+
 
 
 # ----------------------------------------------------------------------

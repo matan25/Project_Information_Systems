@@ -1,7 +1,7 @@
 {#
   Template: Report 4 — Cancellation rate per month
   Purpose: Show monthly totals of orders and the share that were cancelled
-           (customer or system), expressed as a percentage.
+           by customers only, expressed as both a rate (0..1) and a percentage.
 #}
 
 {% extends "base.html" %}
@@ -22,7 +22,7 @@
 
     <p class="subtitle">
         Monthly overview of all orders and the share that were cancelled
-        by customers or by the system.
+        by customers only.
     </p>
 
     {% if months %}
@@ -32,7 +32,8 @@
                 <tr>
                     <th>Month</th>
                     <th>Total orders</th>
-                    <th>Cancelled orders</th>
+                    <th>Cancelled (customer)</th>
+                    <th>Cancellation rate</th>
                     <th>Cancellation rate (%)</th>
                 </tr>
             </thead>
@@ -41,7 +42,8 @@
                 <tr>
                     <td>{{ m.YearMonth }}</td>
                     <td>{{ m.Total_Orders }}</td>
-                    <td>{{ m.Cancelled_Orders }}</td>
+                    <td>{{ m.Cancelled_By_Customer }}</td>
+                    <td>{{ m.Cancellation_Rate }}</td>
                     <td>{{ m.Cancellation_Rate_Percent }}</td>
                 </tr>
                 {% endfor %}
