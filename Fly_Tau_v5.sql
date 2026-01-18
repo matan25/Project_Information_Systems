@@ -759,7 +759,7 @@ INSERT INTO FlightCrew_Attendants (Attendant_id, Flight_id) VALUES
 
 ('500000016', 'FT006'),
 ('500000017', 'FT006'),
-('500000018', 'FT006'),
+
 
 ('500000019', 'FT007'),
 ('500000020', 'FT007'),
@@ -1057,6 +1057,8 @@ JOIN Aircrafts AS ac ON ac.Aircraft_id = ms.Aircraft_id
 LEFT JOIN top_routes_concat AS trc ON trc.Aircraft_id = ms.Aircraft_id AND trc.MonthStart  = ms.MonthStart
 WHERE ms.MonthStart < DATE_FORMAT(CURDATE(), '%Y-%m-01')
 ORDER BY ms.MonthStart, ms.Aircraft_id;
+
+
 
 
 
