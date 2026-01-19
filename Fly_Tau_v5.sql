@@ -873,8 +873,8 @@ SELECT
 	SUM(CASE WHEN R.Duration_Minutes <= 360 THEN R.Duration_Minutes ELSE 0 END) / 60.0 AS Short_Hours
 FROM FlightAttendants A
 JOIN FlightCrew_Attendants CA ON A.Attendant_id = CA.Attendant_id
-JOIN Flights F ON CA.Flight_id   = F.Flight_id
-JOIN Flight_Routes R ON F.Route_id     = R.Route_id
+JOIN Flights F ON CA.Flight_id = F.Flight_id
+JOIN Flight_Routes R ON F.Route_id = R.Route_id
 WHERE F.Status = 'Completed'
 GROUP BY A.Attendant_id, Full_Name
 

@@ -64,8 +64,6 @@ Project_Information_Systems/
 ├─ seatmap.png
 └─ graph.png
 
-markdown
-Copy code
 
 ---
 
@@ -78,6 +76,15 @@ Managers can:
 - Assign **crew** (pilots + attendants) to flights.
 - Manage **seat pricing** and seat status.
 - View system **reports** (analytics dashboard).
+
+**Notes & business rules (manager views):**
+- **Flight history & cancelled flights:** When a flight is cancelled, its crew assignments are **cleared/removed** from that flight (to keep data consistent and free resources). Therefore, in the **history view** of a cancelled flight you may see no crew listed, even if it was assigned before cancellation.
+- **Seat pricing (default vs. actual):** In the flight edit screen, the displayed seat price starts as a **default/base price**. The manager can change it, and the shown price should be treated as an initial value—not a fixed value.
+- **Crew replacement based on availability:** When editing a flight, the system shows:
+  - the **currently assigned attendants** for that flight, and  
+  - a list of **available attendants** for the same flight time window.  
+  Managers can replace attendants only from the **available list**, ensuring no scheduling conflicts and allowing safe swaps directly within the edit flow.
+  
 
 ### Registered Customer
 Registered customers can:
