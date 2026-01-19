@@ -302,14 +302,16 @@ def manager_new_crew():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Check duplicates for ID (both tables)
+        # Check duplicates for ID (Managers + Pilots + FlightAttendants)
         cursor.execute(
             """
+            SELECT 1 FROM Managers WHERE Manager_id = %s
+            UNION
             SELECT 1 FROM Pilots WHERE Pilot_id = %s
             UNION
             SELECT 1 FROM FlightAttendants WHERE Attendant_id = %s
             """,
-            (clean["id_number"], clean["id_number"]),
+            (clean["id_number"], clean["id_number"], clean["id_number"]),
         )
         if cursor.fetchone():
             flash("A crew member with this ID number already exists.", "error")
