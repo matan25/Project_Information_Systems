@@ -815,13 +815,27 @@ WHERE f.Status = 'Completed'
 GROUP BY f.Flight_id, f.Dep_DateTime, r.Duration_Minutes, r.Origin_Airport_code, r.Destination_Airport_code, ao.City, ad.City 
 ORDER BY f.Dep_DateTime;
 
+WITH per_flight AS (
+    SELECT
+        f.Flight_id,
+        COUNT(fs.FlightSeat_id) AS Total_Seats,
+        SUM(CASE WHEN fs.Seat_Status = 'Sold' THEN 1 ELSE 0 END) AS Sold_Seats
+    FROM Flights f
+    JOIN FlightSeats fs ON f.Flight_id = fs.Flight_id
+    WHERE f.Status = 'Completed'
+    GROUP BY f.Flight_id
+)
+SELECT
+    ROUND(SUM(Sold_Seats) / SUM(Total_Seats), 4) AS Weighted_Avg_Load_Factor,
+    ROUND((SUM(Sold_Seats) / SUM(Total_Seats)) * 100, 2) AS Weighted_Avg_Load_Factor_Percent
+FROM per_flight;
 
 
 
     SELECT
-    a.Size         AS Aircraft_Size,
+    a.Size AS Aircraft_Size,
     a.Manufacturer AS Aircraft_Manufacturer,
-    s.Seat_Class   AS Seat_Class,
+    s.Seat_Class AS Seat_Class,
     COALESCE(SUM(CASE WHEN o.Status IN ('Active', 'Completed') THEN fs.Seat_Price 
             WHEN o.Status = 'Cancelled-Customer'
 			AND o.Cancel_Date IS NOT NULL
@@ -845,14 +859,12 @@ SELECT
     SUM(CASE WHEN R.Duration_Minutes > 360 THEN R.Duration_Minutes ELSE 0 END) / 60.0 AS Long_Hours,
     SUM(CASE WHEN R.Duration_Minutes <= 360 THEN R.Duration_Minutes ELSE 0 END) / 60.0 AS Short_Hours
 FROM Pilots P
-JOIN FlightCrew_Pilots CP   ON P.Pilot_id   = CP.Pilot_id
-JOIN Flights F              ON CP.Flight_id = F.Flight_id
-JOIN Flight_Routes R        ON F.Route_id   = R.Route_id
+JOIN FlightCrew_Pilots CP ON P.Pilot_id   = CP.Pilot_id
+JOIN Flights F  ON CP.Flight_id = F.Flight_id
+JOIN Flight_Routes R ON F.Route_id = R.Route_id
 WHERE F.Status = 'Completed'
 GROUP BY P.Pilot_id, Full_Name
-
 UNION ALL
-
 SELECT
     A.Attendant_id AS Employee_id,
     CONCAT(A.First_Name, ' ', A.Last_Name) AS Full_Name, 'FlightAttendant' AS Employee_Type,
@@ -860,8 +872,8 @@ SELECT
 	SUM(CASE WHEN R.Duration_Minutes <= 360 THEN R.Duration_Minutes ELSE 0 END) / 60.0 AS Short_Hours
 FROM FlightAttendants A
 JOIN FlightCrew_Attendants CA ON A.Attendant_id = CA.Attendant_id
-JOIN Flights F                ON CA.Flight_id   = F.Flight_id
-JOIN Flight_Routes R          ON F.Route_id     = R.Route_id
+JOIN Flights F ON CA.Flight_id   = F.Flight_id
+JOIN Flight_Routes R ON F.Route_id     = R.Route_id
 WHERE F.Status = 'Completed'
 GROUP BY A.Attendant_id, Full_Name
 
@@ -1027,7 +1039,7 @@ aircraft_month_summary AS (
     FROM flight_monthly fm
     LEFT JOIN (SELECT Aircraft_id, MonthStart, COUNT(DISTINCT ActivityDay) AS Active_Days
         FROM flight_days
-        GROUP BY Aircraft_id, MonthStart) fd ON fd.Aircraft_id = fm.Aircraft_id AND fd.MonthStart  = fm.MonthStart
+        GROUP BY Aircraft_id, MonthStart) fd ON fd.Aircraft_id = fm.Aircraft_id AND fd.MonthStart = fm.MonthStart
     GROUP BY fm.Aircraft_id, fm.MonthStart, fd.Active_Days
 ),
 

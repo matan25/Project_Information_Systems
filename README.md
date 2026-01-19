@@ -90,8 +90,38 @@ Registered customers can:
 ### Guest
 Guests can:
 - Search and book flights similarly to registered customers.
-- Retrieve booking information via **Guest booking lookup** using an **Order Code**.
+- Retrieve booking information via **Guest booking lookup** using an **Order Code**
 
+## Order code format (Order_Code)
+
+Each order is identified by a unique **Order_Code** in the format:
+
+- **O########** (example: `O00000001`)
+
+This code is shown to the user after checkout and is used for:
+- tracking an order in the customer area
+- **guest order lookup** (a guest can view their order/payment details by entering the `O########` code)
+
+---
+
+## Order lifecycle: Active vs Completed + cancellation rules (UTC)
+
+### When an order is **Active**
+An order is considered **Active** from the moment it is created **until 36 hours before the flight departure time**.
+
+### When an order is **Completed (no refund)**
+Starting **36 hours before departure** (and after), the order is treated as **Completed** for refund purposes:
+- the order is **not refundable**
+- the customer cannot cancel for a refund
+
+### Customer cancellation (fee policy)
+If the customer cancels **while the order is still Active** (i.e., **at least 36 hours before departure**):
+- a **5% cancellation fee** is charged
+- the remaining amount is refunded (per implementation)
+
+### 72-hour operational cancellation rule (system policy)
+Separately from customer refunds, the system enforces a **72-hour rule** for operational flight cancellation:
+- a flight may be cancelled by management only **≥ 72 hours before departure** (if implemented in the manager flows)
 ---
 
 ## Timezone / Date-Time Handling (UTC-0)
@@ -305,4 +335,4 @@ The manager dashboard includes the following analytics reports:
 
 1) Create a MySQL database (example: `flytau`) and import the schema:
 
-mysql flytau < Fly_Tau_v5.sql
+mysql flytau -  Fly_Tau_v5.sql
