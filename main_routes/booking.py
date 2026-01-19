@@ -165,7 +165,7 @@ def _update_flight_full_status(cursor, flight_id):
 def _cleanup_cancelled_orders_seats(cursor):
     """
     If Orders were manually marked Cancelled-Customer in SQL but seats not released,
-    release ONLY seats that are not re-sold to another non-cancelled-customer order.
+    release only seats that are not re-sold to another non-cancelled-customer order.
     """
     cursor.execute(
         """
