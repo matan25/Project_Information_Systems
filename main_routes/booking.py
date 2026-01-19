@@ -166,6 +166,7 @@ def _cleanup_cancelled_orders_seats(cursor):
     """
     If Orders were manually marked Cancelled-Customer in SQL but seats not released,
     release ONLY seats that are not re-sold to another non-cancelled-customer order.
+    IMPORTANT: Never override manager/system Blocked seats.
     """
     cursor.execute(
         """
@@ -182,7 +183,7 @@ def _cleanup_cancelled_orders_seats(cursor):
                     OR UPPER(TRIM(o2.Status)) <> 'CANCELLED-CUSTOMER'
                   )
         WHERE UPPER(TRIM(o.Status)) = 'CANCELLED-CUSTOMER'
-          AND fs.Seat_Status <> 'Available'
+          AND fs.Seat_Status = 'Sold'             -- FIX: only Sold can be released
           AND o2.Order_code IS NULL
         """
     )
@@ -198,11 +199,13 @@ def _cleanup_cancelled_orders_seats(cursor):
             JOIN Tickets t ON t.FlightSeat_id = fs.FlightSeat_id
             SET fs.Seat_Status = 'Available'
             WHERE t.Order_code = %s
+              AND fs.Seat_Status = 'Sold'         -- FIX: never override Blocked
             """,
             (order_code,),
         )
 
         _update_flight_full_status(cursor, flight_id)
+
 
 
 # -------------------------------------------------------------------
