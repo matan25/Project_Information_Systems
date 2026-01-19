@@ -759,6 +759,7 @@ INSERT INTO FlightCrew_Attendants (Attendant_id, Flight_id) VALUES
 
 ('500000016', 'FT006'),
 ('500000017', 'FT006'),
+('500000018', 'FT006'),
 
 
 ('500000019', 'FT007'),
@@ -975,33 +976,6 @@ LEFT JOIN top_routes_concat AS trc ON trc.Aircraft_id = ms.Aircraft_id AND trc.M
 ORDER BY ms.MonthStart, ms.Aircraft_id;
 
 
-
-/* ============================================================
-   דוח 5 — פעילות חודשית לכל מטוס (ניצולת לפי "ימי פעילות")
-
-   מטרת השאילתה:
-   להציג לכל מטוס ולכל חודש:
-   - סך טיסות (Total_Flights)
-   - טיסות שבוצעו (Flights_Completed)
-   - טיסות שבוטלו (Flights_Cancelled)
-   - אחוז ניצולת חודשי: אחוז הימים בחודש בהם המטוס היה "בפעילות"
-     (יום פעילות = קיים לפחות אירוע טיסה אחד שאינו Cancelled באותו יום)
-   - מסלול דומיננטי בחודש (על בסיס טיסות Completed בלבד; בשוויון מציגים את כולם)
-
-   הנחות/הגדרות:
-   1) יום פעילות נספר אם קיימת לפחות טיסה אחת במצב:
-      Active / Full-Occupied / Completed (כלומר: Status <> 'Cancelled').
-   2) שיוך טיסה לחודש נעשה לפי תאריך ההמראה (Dep_DateTime).
-   3) מעבר חודשים (טיסה שמתחילה בחודש ומסתיימת בחודש אחר):
-      - ברמת הנתונים הקיימת (יש רק Dep_DateTime, והגעה נגזרת מה־Duration),
-        אנו מתייחסים ליום(ים) הפעילות באופן הבא:
-        * יום ההמראה תמיד נספר (אם הטיסה לא Cancelled).
-        * כדי לספור גם את יום/ימי ההמשך בחודש הבא, אנו מחשבים Arrival_DateTime
-          ומייצרים רשומת "יום פעילות" נוספת ליום ההגעה (אם שונה מיום ההמראה).
-        כך, טיסה החוצה חצות/חודש יכולה לתרום יום פעילות גם לחודש הבא.
-   4) אחוז הניצולת מחושב ביחס ל־30 ימים (כפי שנדרש בתרגיל),
-      ולכן: Utilization_Percent = Active_Days / 30 * 100.
-   ============================================================ */
 
 WITH flight_base AS (
     SELECT f.Flight_id, f.Aircraft_id,  DATE_FORMAT(f.Dep_DateTime, '%Y-%m-01') AS MonthStart, fr.Origin_Airport_code, fr.Destination_Airport_code,
