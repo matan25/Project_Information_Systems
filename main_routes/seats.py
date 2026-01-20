@@ -53,10 +53,6 @@ def manager_flight_seats(flight_id):
             flash("Flight not found.", "error")
             return redirect(url_for("main.manager_flights"))
 
-        # ---- NEW: keep seat statuses and flight status consistent on every entry ----
-        # This ensures that if a manager previously changed Blocked->Available,
-        # the system will immediately set it back to Sold if a valid Ticket exists,
-        # and also update Full-Occupied/Active accordingly.
         try:
             _sync_flight_seats_from_orders(cursor, flight_id=flight_id)
             _auto_update_full_occupied(cursor, flight_id)
@@ -134,9 +130,7 @@ def manager_flight_seats(flight_id):
                     (price, status, fs_id),
                 )
 
-            # ---- NEW: sync after manager changes, then update flight status ----
-            # If manager set Blocked->Available but there is an active ticket,
-            # the seat will become Sold again, and Full-Occupied will update properly.
+
             _sync_flight_seats_from_orders(cursor, flight_id=flight_id)
             _auto_update_full_occupied(cursor, flight_id)
 
