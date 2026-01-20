@@ -349,13 +349,18 @@ def _insert_guest_customer(cursor, email: str, first_name: str, last_name: str):
 
 def _insert_guest_phones(cursor, email: str, phones):
     for phone in phones:
+        normalized = _normalize_phone_num(phone)
+        if not normalized:
+            continue
+
         cursor.execute(
             """
             SELECT 1
             FROM Guest_Customers_Phones
-            WHERE LOWER(Customer_Email) = %s AND Phone_Number = %s
+            WHERE LOWER(Customer_Email) = %s
+              AND REPLACE(REPLACE(Phone_Number,'-',''),' ','') = %s
             """,
-            (email.lower(), phone),
+            (email.lower(), normalized),
         )
         if not cursor.fetchone():
             cursor.execute(
@@ -363,19 +368,24 @@ def _insert_guest_phones(cursor, email: str, phones):
                 INSERT INTO Guest_Customers_Phones (Customer_Email, Phone_Number)
                 VALUES (%s, %s)
                 """,
-                (email, phone),
+                (email, normalized),
             )
 
 
 def _insert_registered_phones_from_list(cursor, email: str, phones):
     for phone in phones:
+        normalized = _normalize_phone_num(phone)
+        if not normalized:
+            continue
+
         cursor.execute(
             """
             SELECT 1
             FROM Register_Customers_Phones
-            WHERE LOWER(Customer_Email) = %s AND Phone_Number = %s
+            WHERE LOWER(Customer_Email) = %s
+              AND REPLACE(REPLACE(Phone_Number,'-',''),' ','') = %s
             """,
-            (email.lower(), phone),
+            (email.lower(), normalized),
         )
         if not cursor.fetchone():
             cursor.execute(
@@ -383,7 +393,7 @@ def _insert_registered_phones_from_list(cursor, email: str, phones):
                 INSERT INTO Register_Customers_Phones (Customer_Email, Phone_Number)
                 VALUES (%s, %s)
                 """,
-                (email, phone),
+                (email, normalized),
             )
 
 
@@ -850,6 +860,7 @@ def confirm_booking():
 
             reg_row = _get_registered_customer(cursor, customer_email)
             if reg_row:
+                session["guest_email"] = customer_email
                 is_registered = True
                 _insert_registered_phones_from_list(cursor, customer_email, guest_phones)
             else:
@@ -902,6 +913,7 @@ def confirm_booking():
     finally:
         cursor.close()
         conn.close()
+
 
 
 # -------------------------------------------------------------------
