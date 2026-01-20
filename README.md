@@ -163,7 +163,7 @@ All business rules that depend on time are computed in UTC as well.
 For example, the cancellation rule "up to 36 hours before departure" is checked using UTC times:
 - If `dep_utc` is the departure time (UTC)
 - `now_utc = datetime.now()` (UTC)
-- Cancellation allowed if: `dep_utc - now_utc > 36 hours`
+- Cancellation allowed if: `dep_utc - now_utc >= 36 hours`
 
 
 
