@@ -77,6 +77,9 @@ Managers can:
 - Manage **seat pricing** and seat status.
 - View system **reports** (analytics dashboard).
 - View customer orders, including the final charged amount / refund amount calculated from the purchased tickets and the system cancellation policy.
+- Add/purchase new aircraft and define its seat layout (number of rows/columns per class) based on the aircraft size.
+- Add new crew members to the system (pilots and flight attendants).
+
 
 **Notes & business rules (manager views):**
 - **Flight history & cancelled flights:** When a flight is cancelled, its crew assignments are **cleared/removed** from that flight (to keep data consistent and free resources). 
