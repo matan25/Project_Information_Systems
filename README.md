@@ -115,7 +115,13 @@ This code is shown to the user after checkout and is used for:
 
 ### When an order is **Active**
 An order is considered **Active** from the moment it is created **until 36 hours before the flight departure time**.
-
+Seats are not reserved and the order is not considered Active until the customer performs final confirmation and payment;
+ **If confirmation/payment is not completed, the system treats it as no order, and no seats are taken.**
+ Seat reservation policy: Seats are not reserved during the Review step; 
+ At this stage the selection is stored only temporarily (pending_booking in the session) and no database records are created.
+ Seats are reserved only after the user confirms the booking and completes payment, when the system creates the Order (purchase of Tickets - FlightSeats) 
+ and updates the selected FlightSeats to Sold.
+ 
 ### When an order is **Completed (no refund)**
 Starting **36 hours before departure** (and after), the order is treated as **Completed** for refund purposes:
 - the order is **not refundable**
@@ -156,7 +162,6 @@ Example:
 
 So if the screen shows `12:00`, it is correct **in UTC**, and the equivalent Israel time is **14:00**.
 
-> Note: In summer (DST), the offset may be +3 instead of +2.
 
 ### Business rules and UTC
 All business rules that depend on time are computed in UTC as well.
@@ -338,7 +343,7 @@ The manager dashboard includes the following analytics reports:
 
 ---
 
-## Setup (Local)
+## Setup (DB)
 
 1) Create a MySQL database (example: `flytau`) and import the schema:
 
