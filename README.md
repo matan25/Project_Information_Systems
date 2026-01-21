@@ -83,7 +83,8 @@ Managers can:
 - **Crew replacement based on availability:** When editing a flight, the system shows:
   - the **currently assigned attendants** for that flight, and  
   - a list of **available attendants** for the same flight time window.  
-  Managers can replace attendants only from the **available list**, ensuring no scheduling conflicts and allowing safe swaps directly within the edit flow.
+  Managers can replace attendants only from the **available list**, ensuring no scheduling conflicts and allowing safe swaps directly within the edit flow
+  Take in consideration also if long flight - show only available staff members with long_haul_certificate.
   
 
 ### Registered Customer
