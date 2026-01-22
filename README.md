@@ -75,6 +75,8 @@ Managers can:
 - Edit/cancel flights (with system validation rules).
 - Assign **crew** (pilots + attendants) to flights.
 - Manage **seat pricing** and seat status.
+- Auto price refresh on cancellation: when a customer cancels an order, the cancelled seats are released and their Seat_Price is automatically updated to the current class price (Business/Economy) 
+	set by the manager for the same flight, while the original purchase amounts remain preserved in Tickets.Paid_Price for history/refund calculations.
 - View system **reports** (analytics dashboard).
 - View customer orders, including the final charged amount / refund amount calculated from the purchased tickets and the system cancellation policy.
 - Add/purchase new aircraft and define its seat layout (number of rows/columns per class) based on the aircraft size.

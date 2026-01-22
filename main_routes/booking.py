@@ -56,12 +56,20 @@ def _is_valid_phone_num(phone: str) -> bool:
     return digits.isdigit() and PHONE_MIN_LEN <= len(digits) <= PHONE_MAX_LEN
 
 
-def _is_valid_name(name: str) -> bool:
+
+
+
+NAME_EN_RE = re.compile(r"^[A-Za-z][A-Za-z\s\-']*$")
+
+def _is_valid_name(name: str, english_only: bool = False) -> bool:
     if not name:
         return False
     if not (2 <= len(name) <= 50):
         return False
+    if english_only:
+        return bool(NAME_EN_RE.match(name))
     return bool(NAME_RE.match(name))
+
 
 
 # -------------------------------------------------------------------
@@ -766,13 +774,13 @@ def book_seats(flight_id):
 
             if not first_name:
                 errors.append("First name is required.")
-            elif not _is_valid_name(first_name):
-                errors.append("First name is invalid. Use 2–50 letters (Heb/Eng), spaces, - or '.")
+            elif not _is_valid_name(first_name, english_only=True):  # <-- CHANGED (English only)
+                errors.append("First name is invalid. Use 2–50 English letters only (A–Z), spaces, - or '.")
 
             if not last_name:
                 errors.append("Last name is required.")
-            elif not _is_valid_name(last_name):
-                errors.append("Last name is invalid. Use 2–50 letters (Heb/Eng), spaces, - or '.")
+            elif not _is_valid_name(last_name, english_only=True):   # <-- CHANGED (English only)
+                errors.append("Last name is invalid. Use 2–50 English letters only (A–Z), spaces, - or '.")
 
             if not guest_email:
                 errors.append("Email is required.")
@@ -906,6 +914,14 @@ def confirm_booking():
                 flash("Guest details are missing. Please start booking again.", "error")
                 return redirect(url_for("main.select_seats", flight_id=flight_id))
 
+            # ---- ADDED: enforce English-only guest names (no logic change beyond validation) ----
+            if (not _is_valid_name(first_name, english_only=True)) or (not _is_valid_name(last_name, english_only=True)):
+                conn.rollback()
+                session.pop("pending_booking", None)
+                flash("Guest first/last name must be in English letters only.", "error")
+                return redirect(url_for("main.select_seats", flight_id=flight_id))
+            # -------------------------------------------------------------------------------
+
             customer_email = guest_email
 
             reg_row = _get_registered_customer(cursor, customer_email)
@@ -971,6 +987,7 @@ def confirm_booking():
     finally:
         cursor.close()
         conn.close()
+
 
 
 # -------------------------------------------------------------------
