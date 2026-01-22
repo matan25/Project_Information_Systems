@@ -78,6 +78,8 @@ Managers can:
 - View system **reports** (analytics dashboard).
 - View customer orders, including the final charged amount / refund amount calculated from the purchased tickets and the system cancellation policy.
 - Add/purchase new aircraft and define its seat layout (number of rows/columns per class) based on the aircraft size.
+	**Note (initial demo data):** The initial aircraft sizes in the seeded data are for demonstration only — Small = 4 and Large = 6 (for Large: 2 Business + 4 Economy). 	
+	When purchasing/adding a new aircraft, the manager defines the actual seat layout according to the purchased aircraft’s specifications, so the number of rows/columns per class can be any required values.
 - Add new crew members to the system (pilots and flight attendants).
 
 
@@ -93,6 +95,8 @@ Therefore, in the **history view** of a cancelled flight you may see no crew lis
 - **History view (prices vs. management):** In the flight history screen you can see the actual seat prices that were paid (based on the seats/tickets that were sold
   However, financial handling and refunds (according to the cancellation policy) are managed only in the Manager area under the Orders screen.
 - **Edit/Cancel vs. History mode:** Flights are editable only via the Edit/Cancel button.
+The manager can block an available seat for business/logistical/safety reasons only during flight creation or editing, and only if the seat has not been purchased—blocked seats cannot be bought;
+ later, during editing, the manager can switch the seat back to Available (active for sale) as needed.
  Once the flight has departed (and wasn’t cancelled) the button/view automatically switches to History, and no further changes (crew/seat status/prices) are allowed.  
 
 ### Registered Customer
