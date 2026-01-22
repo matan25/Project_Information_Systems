@@ -98,6 +98,7 @@ Therefore, in the **history view** of a cancelled flight you may see no crew lis
 The manager can block an available seat for business/logistical/safety reasons only during flight creation or editing, and only if the seat has not been purchased—blocked seats cannot be bought;
  later, during editing, the manager can switch the seat back to Available (active for sale) as needed.
  Once the flight has departed (and wasn’t cancelled) the button/view automatically switches to History, and no further changes (crew/seat status/prices) are allowed.  
+- **Full - Occupied ** - when no any Available seat in flight.
 
 ### Registered Customer
 Registered customers can:
