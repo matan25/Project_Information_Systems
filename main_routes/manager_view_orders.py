@@ -60,12 +60,15 @@ def manager_orders():
                 f.Status               AS Flight_Status,
                 fr.Origin_Airport_code,
                 fr.Destination_Airport_code,
-                COUNT(t.FlightSeat_id)          AS Ticket_Count,
-                COALESCE(SUM(fs.Seat_Price), 0) AS Raw_Total
+                COUNT(t.FlightSeat_id) AS Ticket_Count,
+
+                -- === UPDATED: use Tickets.Paid_Price (original paid) if exists, else fallback to current FlightSeats.Seat_Price ===
+                COALESCE(SUM(COALESCE(t.Paid_Price, fs.Seat_Price)), 0) AS Raw_Total
+
             FROM Orders o
             LEFT JOIN Register_Customers rc
                    ON rc.Customer_Email = o.Customer_Email
-                  AND o.Customer_Type   = 'Register'   -- <<< FIXED HERE
+                  AND o.Customer_Type   = 'Register'
             LEFT JOIN Guest_Customers gc
                    ON gc.Customer_Email = o.Customer_Email
                   AND o.Customer_Type   = 'Guest'
@@ -139,7 +142,7 @@ def manager_orders():
             o["Cancellation_Fee"] = None
             o["Refund_Amount"] = None
 
-            # Displayed amounts
+            # Displayed amounts (UNCHANGED LOGIC)
             if status == "Cancelled-Customer":
                 fee = round(base_total * 0.05, 2)
                 refund = max(base_total - fee, 0.0)

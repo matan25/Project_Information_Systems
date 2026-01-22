@@ -7,6 +7,7 @@ DB tables used here:
 - Guest_Customers
 - Guest_Customers_Phones
 - Orders
+- Tickets (now includes Paid_Price)
 - FlightSeats (Seat_Status ENUM('Available','Sold','Blocked'))
 - Flights (Status ENUM('Active','Full-Occupied','Completed','Cancelled'))
 
@@ -206,7 +207,6 @@ def _cleanup_cancelled_orders_seats(cursor):
         _update_flight_full_status(cursor, flight_id)
 
 
-
 # -------------------------------------------------------------------
 # Helper: set seat status for all seats in an order
 # -------------------------------------------------------------------
@@ -221,6 +221,56 @@ def _set_seat_status_for_order(cursor, order_code, seat_status):
         """,
         (seat_status, order_code),
     )
+
+
+def _reset_cancelled_seats_price_to_current_class_price(cursor, order_code: str):
+    """
+    Update Seat_Price for the seats that belong to this order (the seats being cancelled)
+    to the CURRENT price of the same Flight + Seat_Class.
+    """
+
+    cursor.execute(
+        """
+        UPDATE FlightSeats fs_cancel
+        JOIN Tickets t_cancel
+          ON t_cancel.FlightSeat_id = fs_cancel.FlightSeat_id
+         AND t_cancel.Order_code = %s
+        JOIN Seats s_cancel
+          ON s_cancel.Seat_id = fs_cancel.Seat_id
+
+        JOIN (
+            SELECT
+                fs2.Flight_id,
+                s2.Seat_Class,
+                COALESCE(
+                    MIN(CASE
+                            WHEN fs2.Seat_Status IN ('Available','Blocked')
+                            THEN fs2.Seat_Price
+                        END),
+                    MIN(fs2.Seat_Price)
+                ) AS class_price
+            FROM FlightSeats fs2
+            JOIN Seats s2 ON s2.Seat_id = fs2.Seat_id
+
+            -- exclude the seats that belong to THIS cancelled order
+            LEFT JOIN Tickets tx
+              ON tx.FlightSeat_id = fs2.FlightSeat_id
+             AND tx.Order_code    = %s
+
+            WHERE fs2.Seat_Price IS NOT NULL
+              AND tx.FlightSeat_id IS NULL
+
+            GROUP BY fs2.Flight_id, s2.Seat_Class
+            HAVING class_price IS NOT NULL
+        ) p
+          ON p.Flight_id  = fs_cancel.Flight_id
+         AND p.Seat_Class = s_cancel.Seat_Class
+
+        SET fs_cancel.Seat_Price = p.class_price
+        """,
+        (order_code, order_code),
+    )
+
 
 
 # -------------------------------------------------------------------
@@ -893,9 +943,17 @@ def confirm_booking():
             if cursor.rowcount != 1:
                 raise Exception(f"Seat {seat_id} is no longer available.")
 
+            # NEW: store historical paid price on ticket
             cursor.execute(
-                "INSERT INTO Tickets (FlightSeat_id, Order_code) VALUES (%s, %s)",
-                (seat_id, new_order_code),
+                "SELECT Seat_Price FROM FlightSeats WHERE FlightSeat_id = %s",
+                (seat_id,),
+            )
+            price_row = cursor.fetchone() or {}
+            paid_price = float(price_row.get("Seat_Price") or 0.0)
+
+            cursor.execute(
+                "INSERT INTO Tickets (FlightSeat_id, Order_code, Paid_Price) VALUES (%s, %s, %s)",
+                (seat_id, new_order_code, paid_price),
             )
 
         _update_flight_full_status(cursor, flight_id)
@@ -913,7 +971,6 @@ def confirm_booking():
     finally:
         cursor.close()
         conn.close()
-
 
 
 # -------------------------------------------------------------------
@@ -1040,7 +1097,9 @@ def booking_confirmation(order_code):
 
         cursor.execute(
             """
-            SELECT t.FlightSeat_id, fs.Seat_Price, s.Row_Num, s.Col_Num, s.Seat_Class
+            SELECT t.FlightSeat_id,
+                   t.Paid_Price AS Seat_Price,
+                   s.Row_Num, s.Col_Num, s.Seat_Class
             FROM Tickets t
             JOIN FlightSeats fs ON fs.FlightSeat_id = t.FlightSeat_id
             JOIN Seats       s  ON s.Seat_id        = fs.Seat_id
@@ -1134,7 +1193,7 @@ def customer_orders():
                 fr.Origin_Airport_code,
                 fr.Destination_Airport_code,
                 COUNT(t.FlightSeat_id)          AS Ticket_Count,
-                COALESCE(SUM(fs.Seat_Price), 0) AS Total_Price
+                COALESCE(SUM(t.Paid_Price), 0)  AS Total_Price
             FROM Orders o
             LEFT JOIN Flights       f  ON o.Flight_id      = f.Flight_id
             LEFT JOIN Flight_Routes fr ON f.Route_id       = fr.Route_id
@@ -1282,9 +1341,10 @@ def cancel_order(order_code):
             conn.rollback()
             return redirect(url_for("main.customer_orders"))
 
+        # Total before any price reset (keeps historical purchase amounts intact)
         cursor.execute(
             """
-            SELECT COALESCE(SUM(fs.Seat_Price), 0) AS Total_Price
+            SELECT COALESCE(SUM(t.Paid_Price), 0) AS Total_Price
             FROM Tickets t
             JOIN FlightSeats fs ON t.FlightSeat_id = fs.FlightSeat_id
             WHERE t.Order_code = %s
@@ -1296,8 +1356,13 @@ def cancel_order(order_code):
         fee = round(total_amount * 0.05, 2)
         refund = max(total_amount - fee, 0.0)
 
+        # ===== NEW: reset cancelled seats price to current class price (only if there are Available seats now) =====
+        _reset_cancelled_seats_price_to_current_class_price(cursor, order_code)
+
+        # Release seats
         _set_seat_status_for_order(cursor, order_code, "Available")
 
+        # Mark order cancelled
         cursor.execute(
             """
             UPDATE Orders
@@ -1375,15 +1440,11 @@ def guest_order_lookup():
             flash("No order found for this email and order ID.", "error")
             return render_template("guest_order_lookup.html")
 
-        # ===== CHANGE (minimal): ALWAYS treat lookup as guest-style view =====
-        # We want registered customers who came via guest lookup to see
-        # the same options as guests in booking_confirmation.html.
         session.pop("role", None)
         session.pop("customer_email", None)
         session.pop("customer_name", None)
 
         session["guest_email"] = email
-        # ===== END CHANGE =====
 
         return redirect(url_for("main.booking_confirmation", order_code=order_code))
 
@@ -1438,9 +1499,10 @@ def guest_cancel_order(order_code):
             conn.rollback()
             return redirect(url_for("main.booking_confirmation", order_code=order_code))
 
+        # Total before any price reset (keeps historical purchase amounts intact)
         cursor.execute(
             """
-            SELECT COALESCE(SUM(fs.Seat_Price), 0) AS Total_Price
+            SELECT COALESCE(SUM(t.Paid_Price), 0) AS Total_Price
             FROM Tickets t
             JOIN FlightSeats fs ON t.FlightSeat_id = fs.FlightSeat_id
             WHERE t.Order_code = %s
@@ -1452,8 +1514,12 @@ def guest_cancel_order(order_code):
         fee = round(total_amount * 0.05, 2)
         refund = max(total_amount - fee, 0.0)
 
+        _reset_cancelled_seats_price_to_current_class_price(cursor, order_code)
+
+        # Release seats
         _set_seat_status_for_order(cursor, order_code, "Available")
 
+        # Mark order cancelled
         cursor.execute(
             """
             UPDATE Orders
@@ -1481,4 +1547,3 @@ def guest_cancel_order(order_code):
     finally:
         cursor.close()
         conn.close()
-

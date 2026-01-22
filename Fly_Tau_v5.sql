@@ -53,7 +53,6 @@ CREATE TABLE Register_Customers (
     Registration_Date   DATETIME   NOT NULL,
     Birth_Date          DATETIME    NOT NULL,
     Customer_Password   VARCHAR(64) NOT NULL,           
-   # CONSTRAINT uq_customers_email      UNIQUE (Email),
     CONSTRAINT uq_customers_passport   UNIQUE (Passport_No)
 );
 
@@ -155,15 +154,19 @@ CREATE TABLE Orders (
 		FOREIGN KEY (Flight_id) REFERENCES Flights(Flight_id)
 );
 
+
+
 CREATE TABLE Tickets (
     Ticket_id      INT AUTO_INCREMENT PRIMARY KEY,
     FlightSeat_id  VARCHAR(10) NOT NULL,
     Order_code     VARCHAR(10) NOT NULL,
+    Paid_Price     DECIMAL(8,2) NOT NULL,
     CONSTRAINT fk_tickets_fseat
         FOREIGN KEY (FlightSeat_id) REFERENCES FlightSeats(FlightSeat_id),
     CONSTRAINT fk_tickets_order
         FOREIGN KEY (Order_code) REFERENCES Orders(Order_code)
 );
+
 
 
 CREATE TABLE FlightCrew_Pilots (
@@ -643,47 +646,71 @@ INSERT INTO Orders(Order_code, Order_Date, Status, Cancel_Date, Customer_Email, 
 ('O000000010','2025-05-20 15:45:00','Completed',          NULL,'shira@flytau.com','FT005','Register'),
 
 ('O000000011','2025-06-10 10:00:00','Completed',          NULL,'matan@flytau.com','FT006','Register'),
-('O000000012','2025-06-18 16:30:00','Cancelled-Customer', NULL,'daniel@flytau.com','FT006','Guest');
+('O000000012','2025-06-12 16:30:00','Cancelled-Customer', '2025-06-14 16:45:00','daniel@flytau.com','FT006','Guest');
+
+/*DELIMITER $$
+
+CREATE TRIGGER trg_tickets_set_paid_price
+BEFORE INSERT ON Tickets
+FOR EACH ROW
+BEGIN
+  DECLARE v_price DECIMAL(8,2);
+
+  SELECT fs.Seat_Price
+    INTO v_price
+  FROM FlightSeats fs
+  WHERE fs.FlightSeat_id = NEW.FlightSeat_id
+  LIMIT 1;
+
+  IF v_price IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Cannot create Ticket: FlightSeat.Seat_Price is NULL';
+  END IF;
+
+  SET NEW.Paid_Price = v_price;
+END$$
+
+DELIMITER ;*/
 
 
-INSERT INTO Tickets (FlightSeat_id, Order_code) VALUES
-('FS000001', 'O000000001'),
-('FS000002', 'O000000001'),
+INSERT INTO Tickets (FlightSeat_id, Order_code, Paid_Price) VALUES
+('FS000001', 'O000000001', 450.00),
+('FS000002', 'O000000001', 450.00),
 
-('FS000003', 'O000000002'),
-('FS000004', 'O000000002'),
+('FS000003', 'O000000002', 450.00),
+('FS000004', 'O000000002', 450.00),
 
-('FS000005', 'O000000003'),
+('FS000005', 'O000000003', 400.00),
 
-('FS000006', 'O000000004'),
-('FS000007', 'O000000004'),
+('FS000006', 'O000000004', 400.00),
+('FS000007', 'O000000004', 400.00),
 
-('FS000009', 'O000000005'),
-('FS000010', 'O000000005'),
-('FS000011', 'O000000005'),
+('FS000009', 'O000000005', 1200.00),
+('FS000010','O000000005', 1200.00),
+('FS000011','O000000005', 800.00),
 
-('FS000012', 'O000000006'),
-('FS000013', 'O000000006'),
+('FS000012','O000000006', 800.00),
+('FS000013','O000000006', 800.00),
 
-('FS000015', 'O000000007'),
-('FS000016', 'O000000007'),
-('FS000017', 'O000000007'),
-('FS000018', 'O000000007'),
+('FS000015','O000000007', 1000.00),
+('FS000016','O000000007', 1000.00),
+('FS000017','O000000007', 500.00),
+('FS000018','O000000007', 500.00),
 
-('FS000019', 'O000000008'),
-('FS000020', 'O000000008'),
+('FS000019','O000000008', 500.00),
+('FS000020','O000000008', 500.00),
 
-('FS000021', 'O000000010'),
-('FS000022', 'O000000010'),
+('FS000021','O000000010', 900.00),
+('FS000022','O000000010', 900.00),
 
-('FS000023', 'O000000009'),
-('FS000024', 'O000000009'),
+('FS000023','O000000009', 600.00),
+('FS000024','O000000009', 600.00),
 
-('FS000027', 'O000000011'),
-('FS000028', 'O000000011'),
+('FS000027','O000000011', 300.00),
+('FS000028','O000000011', 300.00),
 
-('FS000029', 'O000000012'),
-('FS000030', 'O000000012');
+('FS000029','O000000012', 300.00),
+('FS000030','O000000012', 300.00);
 
 
 INSERT INTO FlightCrew_Pilots (Pilot_id, Flight_id) VALUES
@@ -805,9 +832,6 @@ INSERT INTO FlightCrew_Attendants (Attendant_id, Flight_id) VALUES
 ('500000011', 'FT013'),
 ('500000038', 'FT013'),
 ('500000068', 'FT013');
-
-
-
 
 
 

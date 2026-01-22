@@ -17,6 +17,11 @@ from flask import render_template, redirect, url_for, flash
 from mysql.connector import Error
 
 from db import get_db_connection
+
+from flask import render_template, redirect, url_for, flash
+from mysql.connector import Error
+
+from db import get_db_connection
 from . import main_bp, _require_manager
 
 
@@ -157,7 +162,7 @@ def manager_report_revenue_by_aircraft():
                     SUM(
                         CASE
                             WHEN o.Status IN ('Active', 'Completed')
-                                THEN fs.Seat_Price
+                                THEN COALESCE(t.Paid_Price, fs.Seat_Price)
                             WHEN o.Status = 'Cancelled-Customer'
                                  AND o.Cancel_Date IS NOT NULL
                                  AND TIMESTAMPDIFF(
@@ -165,7 +170,7 @@ def manager_report_revenue_by_aircraft():
                                         o.Cancel_Date,
                                         f.Dep_DateTime
                                      ) >= 36
-                                THEN 0.05 * fs.Seat_Price
+                                THEN 0.05 * COALESCE(t.Paid_Price, fs.Seat_Price)
                             ELSE 0
                         END
                     ),
@@ -196,6 +201,7 @@ def manager_report_revenue_by_aircraft():
         conn.close()
 
     return render_template("report_revenue_by_aircraft.html", rows=rows)
+
 
 
 # ----------------------------------------------------------------------
@@ -511,6 +517,8 @@ def manager_report_aircraft_monthly_activity():
         "report_aircraft_monthly_activity.html",
         records=rows,
     )
+
+
 
 
 

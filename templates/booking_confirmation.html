@@ -170,7 +170,18 @@
 
     <div style="margin-bottom: 20px;">
       <p>
-        <strong>Order code:</strong> {{ order.Order_code }}<br>
+        <strong>Order code:</strong>
+        <span style="color:#e74c3c; font-weight:800; font-size:16px;">
+          {{ order.Order_code }}
+        </span><br>
+
+        {% if not is_registered %}
+          <span style="color:#e74c3c; font-weight:700;">
+            Important for guests: this <strong>Order code</strong> must be entered when using
+            <strong>Guest booking lookup</strong> to view the booking.
+          </span><br>
+        {% endif %}
+
         <strong>Order time:</strong> {{ order.OrderDate_str }}<br>
         <strong>Status:</strong> {{ order.Order_Status }}<br>
         <strong>Flight:</strong> {{ order.Flight_id }}
