@@ -80,7 +80,7 @@ Managers can:
 - View system **reports** (analytics dashboard).
 - View customer orders, including the final charged amount / refund amount calculated from the purchased tickets and the system cancellation policy.
 - Add/purchase new aircraft and define its seat layout (number of rows/columns per class) based on the aircraft size.
-	**Note (initial demo data):** The initial aircraft sizes in the seeded data are for demonstration only — Small = 4 and Large = 6 (for Large: 2 Business + 4 Economy). 	
+	**Note (initial demo data):** The initial aircraft sizes in the seeded data are for **demonstration only** — Small = 4 and Large = 6 (for Large: 2 Business + 4 Economy). 	
 	When purchasing/adding a new aircraft, the manager defines the actual seat layout according to the purchased aircraft’s specifications, so the number of rows/columns per class can be any required values.
 - Add new crew members to the system (pilots and flight attendants).
 
@@ -151,6 +151,9 @@ If the customer cancels **while the order is still Active** (i.e., **at least 36
 ### 72-hour operational cancellation rule (system policy)
 Separately from customer refunds, the system enforces a **72-hour rule** for operational flight cancellation:
 - a flight may be cancelled by management only **≥ 72 hours before departure** (if implemented in the manager flows)
+- Separately from customer refunds, the system enforces a 72-hour rule for operational flight cancellation: a flight may be cancelled by management only ≥ 72 hours before departure (if implemented in the manager flows). 
+	If a flight is cancelled by the system (Cancelled-System), all seats that were purchased for that flight are automatically marked Blocked (visible in history),
+	the related orders are no longer active, and customers receive a full refund.
 ---
 
 ## Timezone / Date-Time Handling (UTC-0)

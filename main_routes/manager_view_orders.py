@@ -17,7 +17,7 @@ from mysql.connector import Error
 
 from db import get_db_connection
 from . import main_bp, _require_manager
-from .booking import _cleanup_cancelled_orders_seats  # optional helper, even if unused
+from .booking import _cleanup_cancelled_orders_seats  # optional helper
 
 
 @main_bp.route("/manager/orders")
@@ -102,6 +102,7 @@ def manager_orders():
 
         now = datetime.now()
         to_cancel_sys = []
+        to_complete = []   # === NEW ===
 
         for o in orders:
             # Pretty strings
@@ -133,6 +134,15 @@ def manager_orders():
             o["Ticket_Count"] = int(o.get("Ticket_Count") or 0)
             o["Original_Total"] = base_total
 
+            # === NEW: auto-complete Active orders within 36h of departure (if flight not cancelled) ===
+            if (
+                o["Order_Status"] == "Active"
+                and o.get("Flight_Status") != "Cancelled"
+                and time_to_dep <= timedelta(hours=36)
+            ):
+                to_complete.append(o["Order_code"])
+                o["Order_Status"] = "Completed"
+
             # Auto: flight cancelled → Cancelled-System
             if o["Order_Status"] == "Active" and o.get("Flight_Status") == "Cancelled":
                 to_cancel_sys.append(o["Order_code"])
@@ -155,6 +165,18 @@ def manager_orders():
             else:
                 o["Display_Total"] = base_total
 
+        # Persist DB changes: Active → Completed when within 36h of departure
+        if to_complete:
+            cursor.executemany(
+                """
+                UPDATE Orders
+                SET Status = 'Completed'
+                WHERE Order_code = %s
+                  AND Status = 'Active'
+                """,
+                [(oc,) for oc in to_complete],
+            )
+
         # Persist DB changes: Active → Cancelled-System when flight is cancelled
         if to_cancel_sys:
             cursor.executemany(
@@ -167,6 +189,8 @@ def manager_orders():
                 """,
                 [(oc,) for oc in to_cancel_sys],
             )
+
+        if to_complete or to_cancel_sys:
             conn.commit()
 
     except Error as e:
@@ -183,3 +207,4 @@ def manager_orders():
         flight_id_filter=flight_id_filter,
         customer_email_filter=customer_email_filter,
     )
+
