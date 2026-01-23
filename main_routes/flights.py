@@ -1309,6 +1309,20 @@ def manager_view_flight(flight_id):
             s = cursor.fetchone()
             if s:
                 flight["Status"] = s["Status"]
+
+            # ===== NEW: if flight is Cancelled -> block ALL seats automatically =====
+            if flight.get("Status") == "Cancelled":
+                cursor.execute(
+                    """
+                    UPDATE FlightSeats
+                    SET Seat_Status = 'Blocked'
+                    WHERE Flight_id = %s
+                      AND Seat_Status <> 'Blocked'
+                    """,
+                    (flight_id,),
+                )
+                conn.commit()
+
         except Error as e:
             print("DB error when auto-updating Full-Occupied:", e)
 
@@ -1390,6 +1404,7 @@ def manager_view_flight(flight_id):
             cursor.close()
         if conn:
             conn.close()
+
 
 
 # -----------------------------

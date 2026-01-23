@@ -152,7 +152,7 @@ If the customer cancels **while the order is still Active** (i.e., **at least 36
 Separately from customer refunds, the system enforces a **72-hour rule** for operational flight cancellation:
 - a flight may be cancelled by management only **≥ 72 hours before departure** (if implemented in the manager flows)
 - Separately from customer refunds, the system enforces a 72-hour rule for operational flight cancellation: a flight may be cancelled by management only ≥ 72 hours before departure (if implemented in the manager flows). 
-	If a flight is cancelled by the system (Cancelled-System), all seats that were purchased for that flight are automatically marked Blocked (visible in history),
+	If a flight is cancelled by the system (Cancelled-System), all seats (include those that were purchased) for that flight are automatically marked Blocked (visible in history),
 	the related orders are no longer active, and customers receive a full refund.
 ---
 
